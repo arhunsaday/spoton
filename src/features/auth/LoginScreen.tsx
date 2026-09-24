@@ -39,11 +39,11 @@ export function LoginScreen() {
         <CardHeader>
           <img
             src="/icon.png"
-            alt="Swiper"
+            alt="Spoton"
             className="mb-2 h-12 w-12 rounded-xl drag-none"
             draggable={false}
           />
-          <CardTitle>Spotify Swipe Sort</CardTitle>
+          <CardTitle>Spoton</CardTitle>
           <CardDescription>
             Fast, keyboard-driven playlist triage. Runs entirely in your browser
             (PKCE, no backend). Requires Spotify Premium.

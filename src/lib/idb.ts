@@ -8,7 +8,7 @@
  * localStorage is deliberately not used: a single 3k-track playlist is already
  * ~1.5 MB of JSON, which blows the ~5 MB origin quota after two playlists. */
 
-const DB_NAME = "sw.cache";
+const DB_NAME = "spoton.cache";
 const DB_VERSION = 1;
 
 export type StoreName = "lists" | "members" | "previews" | "kv";

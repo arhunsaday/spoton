@@ -65,7 +65,7 @@ export function TopBar() {
     <header className="flex h-14 items-center gap-4 border-b border-border px-4">
       {/* <img
         src="/icon.png"
-        alt="Spotify Swipe Sort"
+        alt="Spoton"
         className="h-7 w-7 shrink-0 rounded-md drag-none"
         draggable={false}
       /> */}

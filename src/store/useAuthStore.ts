@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "sw.auth",
+      name: "spoton.auth",
       partialize: (s) => ({ tokens: s.tokens }),
     },
   ),

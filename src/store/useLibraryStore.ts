@@ -204,7 +204,7 @@ export const useLibraryStore = create<LibraryState>()(
       },
     }),
     {
-      name: "sw.library",
+      name: "spoton.library",
       version: 2,
       migrate: (persisted, version) => {
         const s = persisted as Partial<LibraryState> | undefined;

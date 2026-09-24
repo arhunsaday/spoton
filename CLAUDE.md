@@ -1,4 +1,4 @@
-# CLAUDE.md — Spotify Playlist Sorter
+# CLAUDE.md — Spoton
 
 > Context handoff from an earlier planning/prototyping chat. This file is the
 > single source of truth for what the app is, the hard constraints discovered,
