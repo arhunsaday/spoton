@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Spotify Swiper — PoC</title>
+<title>Spoton — PoC</title>
 <style>
   :root {
     --bg: #0d1117; --panel: #161b22; --panel2: #1c2230; --border: #2a3038;
@@ -99,7 +99,7 @@
 </head>
 <body>
 <header>
-  <h1>🎧 Spotify Swiper</h1>
+  <h1>🎧 Spoton</h1>
   <span class="tag">proof of concept</span>
   <span class="tag">iTunes preview · search-primary</span>
   <span id="account" class="tag hidden"></span>
@@ -195,7 +195,7 @@
 <script>
 "use strict";
 /* ============================================================================
- * Spotify Swiper — single-file PoC
+ * Spoton — single-file PoC
  * Validates: PKCE OAuth · playlist read · iTunes preview resolution (SEARCH-
  * primary; ISRC lookup is dead) · focus/keyboard nav · add-to-target (write).
  * ========================================================================== */
@@ -210,8 +210,8 @@ const AUTH_URL  = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const API       = "https://api.spotify.com/v1";
 const LS = {
-  clientId: "sw.clientId", verifier: "sw.pkce_verifier", state: "sw.pkce_state",
-  tokens: "sw.tokens",
+  clientId: "spoton.clientId", verifier: "spoton.pkce_verifier", state: "spoton.pkce_state",
+  tokens: "spoton.tokens",
 };
 
 const REDIRECT_URI = location.origin + location.pathname;
@@ -224,7 +224,7 @@ function log(...args) {
   const box = el("log");
   box.textContent += line + "\n";
   box.scrollTop = box.scrollHeight;
-  console.log("[swiper]", ...args);
+  console.log("[spoton]", ...args);
 }
 function show(node, on = true) { node.classList.toggle("hidden", !on); }
 
@@ -446,7 +446,7 @@ async function setSource(pl) {
   const data = await spotify(`/playlists/${pl.id}/tracks?limit=50`);
   state.tracks = (data.items || []).filter(it => it.track && it.track.id);
   state.idx = 0;
-  if (state.tracks[0]) console.log("[swiper] first raw track object:", state.tracks[0].track);
+  if (state.tracks[0]) console.log("[spoton] first raw track object:", state.tracks[0].track);
   show(el("diag-card"), true);
   renderFocus();
 }

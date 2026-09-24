@@ -1,3 +1,4 @@
+import "@/lib/storage-rename"; // must stay first: runs before the stores hydrate
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
@@ -5,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./index.css";
 
 if (import.meta.env.DEV) {
-  // handy for debugging in the console: window.__sw.session.getState()
+  // handy for debugging in the console: window.__spoton.session.getState()
   void (async () => {
     const [auth, lib, session, player, ui] = await Promise.all([
       import("@/store/useAuthStore"),
@@ -14,7 +15,7 @@ if (import.meta.env.DEV) {
       import("@/store/usePlayerStore"),
       import("@/store/useUiStore"),
     ]);
-    (window as unknown as { __sw: unknown }).__sw = {
+    (window as unknown as { __spoton: unknown }).__spoton = {
       auth: auth.useAuthStore,
       lib: lib.useLibraryStore,
       session: session.useSessionStore,

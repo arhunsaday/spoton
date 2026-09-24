@@ -17,7 +17,7 @@ import { sleep } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const SDK_SRC = "https://sdk.scdn.co/spotify-player.js";
-const DEVICE_NAME = "Spotify Swiper";
+const DEVICE_NAME = "Spoton";
 /** Position events are sparse, so we interpolate between them at this rate. */
 const TICK_MS = 250;
 /** `ready` normally lands in well under a second; past this something's wrong. */

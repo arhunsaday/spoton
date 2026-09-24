@@ -18,9 +18,9 @@ export const SCOPES = [
 ].join(" ");
 
 const LS = {
-  clientId: "sw.clientId",
-  verifier: "sw.pkce_verifier",
-  state: "sw.pkce_state",
+  clientId: "spoton.clientId",
+  verifier: "spoton.pkce_verifier",
+  state: "spoton.pkce_state",
 } as const;
 
 /** Redirect URI = app origin root. Register this EXACTLY in the dashboard.
