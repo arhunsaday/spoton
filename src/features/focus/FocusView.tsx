@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Music2 } from "lucide-react";
+import { Music2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { holdFullTrack } from "@/lib/playback";
 import { sdkIsOn } from "@/lib/spotify-sdk";
@@ -13,6 +12,13 @@ import { prefetchPreviews, resolvePreview } from "@/lib/preview";
 import type { SpotifyTrack } from "@/types";
 import { Spectrum } from "./Spectrum";
 import { TiltCover } from "./TiltCover";
+
+/** Horizontal travel (px, velocity-weighted) that counts as a swipe. */
+const SWIPE_PX = 70;
+/** Touch-first device: swipe instead of tilt. */
+const isCoarse = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(pointer: coarse)").matches;
 
 /** How long browsing has to settle before a full track is actually started. */
 const START_DEBOUNCE_MS = 300;
@@ -49,6 +55,7 @@ export function FocusView() {
   const previewVia = usePlayerStore((s) => s.previewVia);
 
   const track = tracks[index] ?? null;
+  const coarse = isCoarse();
   const noPreview = previewVia === "none";
   const reqId = useRef(0);
   const lastMode = useRef(fullTracks);
@@ -174,7 +181,7 @@ export function FocusView() {
 
       {visualizer && <Spectrum coverUrl={cover} />}
 
-      <div className="relative z-10 flex w-full max-w-md flex-col items-center px-6">
+      <div className="relative z-10 flex w-full max-w-3xl flex-col items-center px-6 pb-[8vh]">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={track.id}
@@ -183,18 +190,36 @@ export function FocusView() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: dir * -56 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            // touch: swipe the track away to move on (desktop keeps ← / →)
+            drag={coarse ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.35}
+            onDragEnd={(_, info) => {
+              const swipe = info.offset.x + info.velocity.x * 0.2;
+              if (swipe < -SWIPE_PX) next();
+              else if (swipe > SWIPE_PX) prev();
+            }}
             className="flex w-full flex-col items-center"
           >
             <div className="flex w-full items-center justify-center gap-3">
               {/* mirrors the spine's width so the cover stays centred */}
               <div className="w-5 shrink-0" aria-hidden />
               <TiltCover
-                enabled={visualizer}
+                enabled={visualizer && !coarse}
                 className={cn(
-                  "aspect-square w-full max-w-[clamp(160px,38vh,340px)] transition-[filter,opacity] duration-300",
+                  "aspect-square w-full max-w-[min(56vh,560px)] transition-[filter,opacity] duration-300",
                   noPreview && "opacity-70 grayscale",
                 )}
               >
+                {/* the cover is the play button — the bar below has the rest */}
+                <button
+                  type="button"
+                  onClick={toggle}
+                  disabled={noPreview}
+                  aria-label={playing ? "Pause" : "Play"}
+                  title={noPreview ? "No preview available" : playing ? "Pause (Space)" : "Play (Space)"}
+                  className="group/cover relative block h-full w-full cursor-pointer disabled:cursor-default"
+                >
                 {cover ? (
                   <img
                     src={cover}
@@ -207,17 +232,37 @@ export function FocusView() {
                     <Music2 className="h-10 w-10 text-muted-foreground" />
                   </div>
                 )}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-[opacity,background-color] duration-200",
+                    !noPreview && "group-hover/cover:bg-black/25 group-hover/cover:opacity-100 group-focus-visible/cover:opacity-100",
+                    // paused: say so, quietly, without hovering
+                    !playing && !noPreview && "bg-black/20 opacity-100",
+                  )}
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
+                    {buffering && fullTracks ? (
+                      <Loader2 className="h-7 w-7 animate-spin" />
+                    ) : playing ? (
+                      <MaterialSymbolsPauseRounded className="h-9 w-9" />
+                    ) : (
+                      <MaterialSymbolsPlayArrowRounded className="h-9 w-9" />
+                    )}
+                  </span>
+                </span>
+                </button>
               </TiltCover>
               {/* album name set like a book spine, reading top to bottom */}
               <p
                 title={track.album.name}
-                className="max-h-[clamp(160px,38vh,320px)] w-5 shrink-0 truncate text-center tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl] self-start mt-2"
+                className="max-h-[min(56vh,540px)] w-5 shrink-0 truncate text-center tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl] self-start mt-2"
               >
                 {track.album.name}
               </p>
             </div>
 
-            <h1 className="mt-5 line-clamp-1 text-center text-2xl font-bold tracking-tight hover:text-white/60">
+            <h1 className="mt-6 line-clamp-2 text-balance text-center text-2xl font-bold tracking-tight hover:text-white/60 md:text-3xl xl:text-4xl">
               <a
                 href={`https://open.spotify.com/track/${track.id}`}
                 target="_blank"
@@ -228,7 +273,7 @@ export function FocusView() {
                 {track.name}
               </a>
             </h1>
-            <p className="mt-1 text-center text-lg text-muted-foreground">
+            <p className="mt-1.5 text-center text-lg text-muted-foreground xl:text-xl">
               <a
                 href={`https://open.spotify.com/artist/${track.artists[0].id}`}
                 target="_blank"
@@ -242,41 +287,6 @@ export function FocusView() {
           </motion.div>
         </AnimatePresence>
 
-        {/* transport */}
-        <div className="mt-6 flex items-center gap-3">
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={prev}
-            aria-label="Previous"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            size="icon"
-            className="h-14 w-14 rounded-full"
-            onClick={toggle}
-            disabled={noPreview}
-            title={noPreview ? "No preview available" : undefined}
-            aria-label="Play/pause"
-          >
-            {buffering && fullTracks ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : playing ? (
-              <MaterialSymbolsPauseRounded className="h-7 w-7" />
-            ) : (
-              <MaterialSymbolsPlayArrowRounded className="h-7 w-7" />
-            )}
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={next}
-            aria-label="Next"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
       </div>
     </div>
   );

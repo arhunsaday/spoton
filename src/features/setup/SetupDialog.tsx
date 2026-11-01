@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Settings2,
 } from "lucide-react";
 import {
   Dialog,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Kbd } from "@/components/ui/kbd";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { LIKED_SOURCE_ID, useLibraryStore } from "@/store/useLibraryStore";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -108,16 +110,31 @@ export function SetupDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="flex max-h-[86vh] max-w-2xl flex-col gap-0 p-0">
-        <DialogHeader className="p-6 pb-3">
-          <DialogTitle>Set up your session</DialogTitle>
-          <DialogDescription>
-            Pick a source to triage, then choose target playlists — each gets a
-            hotkey.
-          </DialogDescription>
+      <DialogContent className="flex h-[min(86vh,780px)] max-w-2xl flex-col gap-0 p-0">
+        <Tabs defaultValue="playlists" className="flex min-h-0 flex-1 flex-col">
+        <DialogHeader className="space-y-3 p-6 pb-4">
+          <div>
+            <DialogTitle>Set up your session</DialogTitle>
+            <DialogDescription className="mt-1.5">
+              Pick a source to triage, then choose target playlists — each gets
+              a hotkey.
+            </DialogDescription>
+          </div>
+          <TabsList className="self-start">
+            <TabsTrigger value="playlists">
+              <ListMusic className="h-4 w-4" /> Playlists
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings2 className="h-4 w-4" /> Settings
+            </TabsTrigger>
+          </TabsList>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 px-6 pb-6">
+        <TabsContent
+          value="playlists"
+          className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+        >
+        <div className="flex items-center gap-2 px-6 pb-4">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -143,7 +160,7 @@ export function SetupDialog() {
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto border-y border-border scrollbar-thin">
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-border scrollbar-thin">
           <div className="space-y-1 p-3">
             {/* Liked Songs — usable as a source *and* as a target */}
             {"liked songs".includes(q.trim().toLowerCase()) && (
@@ -237,9 +254,17 @@ export function SetupDialog() {
           </div>
         </div>
 
-        <SettingsSection />
+        </TabsContent>
 
-        <div className="flex justify-end p-4">
+        <TabsContent
+          value="settings"
+          className="mt-0 min-h-0 flex-1 overflow-y-auto border-t border-border scrollbar-thin data-[state=inactive]:hidden"
+        >
+          <SettingsSection />
+        </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end border-t border-border p-4">
           <Button onClick={() => setOpen(false)}>Done</Button>
         </div>
       </DialogContent>
@@ -382,7 +407,7 @@ function SettingsSection() {
   ];
 
   return (
-    <div className="grid gap-x-8 gap-y-3 px-6 py-4 sm:grid-cols-2">
+    <div className="grid gap-x-8 gap-y-5 p-6">
       {rows.map((r) => (
         <label key={r.key} className="flex cursor-pointer items-center justify-between gap-4">
           <div>

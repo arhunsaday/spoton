@@ -144,7 +144,13 @@ export function PlayerBar() {
   ];
 
   return (
-    <div className="flex h-20 items-center gap-4 border-t border-border bg-card/80 px-4 backdrop-blur">
+    <div className="relative flex h-20 items-center gap-3 border-t border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
+      {/* phones: no room for a scrubber — a hairline shows progress instead */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-0.5 origin-left bg-primary/80 sm:hidden"
+        style={{ transform: `scaleX(${pct / 100})` }}
+      />
       {/* now playing */}
       <div className="flex w-0 flex-1 items-center gap-3 sm:w-56 sm:flex-none">
         {cover ? (
@@ -191,7 +197,7 @@ export function PlayerBar() {
       </div>
 
       {/* transport + scrubber */}
-      <div className="flex flex-[2] items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:flex-[2] sm:shrink sm:gap-2">
         <Button
           size="icon-sm"
           variant="ghost"
@@ -233,7 +239,7 @@ export function PlayerBar() {
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
-        <span className="ml-1 w-9 text-right text-xs text-muted-foreground tabnum">
+        <span className="ml-1 hidden w-9 text-right text-xs text-muted-foreground tabnum sm:inline">
           {formatTime(currentTime)}
         </span>
         <Slider
@@ -241,16 +247,16 @@ export function PlayerBar() {
           max={100}
           step={0.1}
           onValueChange={([v]) => seekFraction(v / 100)}
-          className="flex-1"
+          className="hidden flex-1 sm:flex"
           aria-label="Seek"
         />
-        <span className="w-9 text-xs text-muted-foreground tabnum">
+        <span className="hidden w-9 text-xs text-muted-foreground tabnum sm:inline">
           {formatTime(duration)}
         </span>
       </div>
 
       {/* right cluster: jump · volume · fullscreen */}
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto hidden items-center gap-3 sm:flex">
         <SourceToggle full={fullTracks} status={sdkStatus} error={sdkError} />
         <DevicePicker track={track} />
 

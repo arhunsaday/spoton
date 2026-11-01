@@ -7,6 +7,7 @@ import { TopBar } from "@/features/layout/TopBar";
 import { FocusView } from "@/features/focus/FocusView";
 import { TargetRail } from "@/features/targets/TargetRail";
 import { PlayerBar } from "@/features/player/PlayerBar";
+import { TargetStrip } from "@/features/targets/TargetStrip";
 import { SetupDialog } from "@/features/setup/SetupDialog";
 import { HelpDialog } from "@/features/help/HelpDialog";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -89,6 +90,7 @@ export default function App() {
             <TargetRail />
           </aside>
         </div>
+        <TargetStrip />
         <PlayerBar />
       </div>
       <SetupDialog />
