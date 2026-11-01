@@ -70,4 +70,6 @@ export interface Tokens {
   access_token: string;
   refresh_token: string;
   expires_at: number;
+  /** space-separated scopes Spotify actually granted (absent on old tokens) */
+  scope?: string;
 }

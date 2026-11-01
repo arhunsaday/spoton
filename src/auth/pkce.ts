@@ -116,6 +116,7 @@ export async function completeLoginFromRedirect(): Promise<Tokens | null> {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
     expires_at: Date.now() + data.expires_in * 1000,
+    scope: data.scope,
   };
 }
 
@@ -137,6 +138,7 @@ export async function refreshTokens(current: Tokens): Promise<Tokens> {
     access_token: data.access_token,
     refresh_token: data.refresh_token || current.refresh_token,
     expires_at: Date.now() + data.expires_in * 1000,
+    scope: data.scope || current.scope,
   };
 }
 

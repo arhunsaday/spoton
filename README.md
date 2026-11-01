@@ -126,6 +126,8 @@ dashboard, and set `VITE_SPOTIFY_CLIENT_ID` in the host's build environment
 | "Reconnect Spotify to allow in-app playback" | Your token predates the playback permissions. Click **Reconnect** (or log out and in) to approve them. Also check that **Web Playback SDK** is ticked in the app settings. |
 | "Spotify Premium is required" | The logged-in account (and the app owner) need Premium for full tracks. Previews still work. |
 | "This browser can't run the Spotify player" | The browser lacks DRM (e.g. some Linux Chromium builds, or Widevine disabled). Use Chrome, Edge, Firefox or Safari. |
+| "Spotify refused the audio licence" (console: `POST …/widevine-license… 403`, repeated `[sdk] playback_error`) | The player connected, but Spotify won't hand it the decryption key. In order: click **Reconnect** (logins from before full-track mode lack the `streaming` permission, and refreshing never adds it); make sure the account is **Premium** and listed under **User Management**; make sure **Web Playback SDK** is ticked in the app settings; try Chrome or Edge, since the DRM module differs between browsers. Spoton stops after 3 refusals and goes back to previews. |
+| Firefox console: `Security Error: Content at https://sdk.scdn.co/… may not load or link to file:///` | Noise from the SDK's own iframe. Harmless. |
 | "Spotify quota exceeded" | Development-mode apps share a request budget. Wait a minute. |
 
 Debug logs: open the browser console and filter on `[sdk]` / `[playback]`.

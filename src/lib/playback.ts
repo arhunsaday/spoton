@@ -115,7 +115,26 @@ function ensureSdk(): Promise<string | null> {
   return sdkAttempt;
 }
 
+/** Things we can rule out before spending seconds on a connection that is
+ *  bound to fail. Old tokens carry no `scope`, so they pass — the playback
+ *  error limiter below catches those. */
+function preflight(): string | null {
+  const { tokens, user } = useAuthStore.getState();
+  if (user?.product && user.product !== "premium") {
+    return "Spotify Premium is required for in-app playback";
+  }
+  if (tokens?.scope && !tokens.scope.split(" ").includes("streaming")) {
+    return "Reconnect Spotify to allow in-app playback";
+  }
+  return null;
+}
+
 async function attemptSdk(): Promise<string | null> {
+  const blocked = preflight();
+  if (blocked) {
+    fallBackToPreviews(blocked);
+    return null;
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       return await connectSdk(usePlayerStore.getState().volume);
@@ -144,6 +163,7 @@ function fallBackToPreviews(description: string) {
   toast.error("Full-track playback unavailable — back to previews", {
     id: "sdk-fallback",
     description,
+    duration: 12_000,
     action: reconnect
       ? {
           label: "Reconnect",
@@ -325,6 +345,18 @@ registerFullTrackControls({
 
 /* SDK events the user should hear about. */
 let handingOffUntil = 0;
+
+/** A player that connects fine but whose audio licence Spotify refuses
+ *  (`POST /widevine-license` → 403) reports one `playback_error` per attempt,
+ *  forever. Repeated failures in a short window mean it will never play
+ *  here, so stop the loop and fall back instead of spamming errors. */
+const ERROR_LIMIT = 3;
+const ERROR_WINDOW_MS = 20_000;
+let playbackErrors: number[] = [];
+const LICENCE_REFUSED =
+  "Spotify refused the audio licence for this player. Reconnect Spotify " +
+  "(old logins lack the streaming permission), check the account has " +
+  "Premium, or try Chrome / Edge — previews still work.";
 registerSdkListeners({
   autoplayBlocked: () => {
     if (!fullTracksOn()) return;
@@ -336,6 +368,16 @@ registerSdkListeners({
   playbackError: (message) => {
     if (!fullTracksOn()) return;
     usePlayerStore.setState({ buffering: false });
+    const now = Date.now();
+    playbackErrors = playbackErrors
+      .filter((t) => now - t < ERROR_WINDOW_MS)
+      .concat(now);
+    if (playbackErrors.length >= ERROR_LIMIT) {
+      playbackErrors = [];
+      toast.dismiss("start");
+      fallBackToPreviews(LICENCE_REFUSED);
+      return;
+    }
     toast.error("Spotify couldn't play this track", {
       id: "start",
       description: `${message} — press Space to retry.`,
