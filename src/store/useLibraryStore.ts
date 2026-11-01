@@ -38,6 +38,9 @@ interface LibraryState {
   positions: Record<string, number>;
   /** batch queue: targetId -> {add, remove} trackIds, survives reloads. */
   pending: Pending;
+  /** setup-dialog playlist groups the user folded away */
+  collapsedGroups: string[];
+  toggleGroup: (id: string) => void;
 
   loadPlaylists: (force?: boolean) => Promise<void>;
   /** resolve once the index is present and reasonably fresh — lets the session
@@ -91,6 +94,16 @@ export const useLibraryStore = create<LibraryState>()(
       },
       positions: {},
       pending: {},
+      collapsedGroups: [],
+
+      toggleGroup: (id) => {
+        const cur = get().collapsedGroups;
+        set({
+          collapsedGroups: cur.includes(id)
+            ? cur.filter((g) => g !== id)
+            : [...cur, id],
+        });
+      },
 
       loadPlaylists: (force = false) => {
         if (playlistsInFlight) return playlistsInFlight;
@@ -220,6 +233,7 @@ export const useLibraryStore = create<LibraryState>()(
         settings: s.settings,
         positions: s.positions,
         pending: s.pending,
+        collapsedGroups: s.collapsedGroups,
       }),
     },
   ),

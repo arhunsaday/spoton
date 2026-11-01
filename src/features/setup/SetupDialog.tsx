@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   Heart,
   ListMusic,
   Loader2,
+  Lock,
   Plus,
   RefreshCw,
   Search,
@@ -22,9 +24,34 @@ import { cn } from "@/lib/utils";
 import { LIKED_SOURCE_ID, useLibraryStore } from "@/store/useLibraryStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useUiStore } from "@/store/useUiStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import type { SpotifyPlaylist } from "@/types";
 import type { Settings } from "@/store/useLibraryStore";
 import { MAX_TARGETS } from "@/lib/hotkeys";
 import { clearAllCaches } from "@/lib/cache";
+
+/* Spotify's Web API doesn't expose playlist folders, so the library is
+ * grouped by what it CAN tell us: who owns each playlist and whether it's
+ * collaborative. That also decides what can be a target — Spotify refuses
+ * writes to playlists you merely follow. */
+type GroupId = "mine" | "collab" | "spotify" | "followed";
+
+const GROUPS: { id: GroupId; label: string; hint?: string }[] = [
+  { id: "mine", label: "Created by you" },
+  { id: "collab", label: "Collaborative" },
+  { id: "spotify", label: "Made by Spotify", hint: "source only" },
+  { id: "followed", label: "Followed", hint: "source only" },
+];
+
+function groupOf(p: SpotifyPlaylist, me: string | undefined): GroupId {
+  if (me && p.owner.id === me) return "mine";
+  if (p.collaborative) return "collab";
+  if (p.owner.id === "spotify") return "spotify";
+  return "followed";
+}
+
+/** Spotify accepts adds/removes only on your own or collaborative lists. */
+const editable = (g: GroupId) => g === "mine" || g === "collab";
 
 export function SetupDialog() {
   const open = useUiStore((s) => s.setupOpen);
@@ -37,6 +64,9 @@ export function SetupDialog() {
   const setSource = useLibraryStore((s) => s.setSource);
   const targets = useLibraryStore((s) => s.targets);
   const toggleTarget = useLibraryStore((s) => s.toggleTarget);
+  const collapsed = useLibraryStore((s) => s.collapsedGroups);
+  const toggleGroup = useLibraryStore((s) => s.toggleGroup);
+  const me = useAuthStore((s) => s.user?.id);
 
   const [q, setQ] = useState("");
 
@@ -51,6 +81,18 @@ export function SetupDialog() {
       ),
     [playlists, q],
   );
+
+  const grouped = useMemo(() => {
+    const by: Record<GroupId, SpotifyPlaylist[]> = {
+      mine: [],
+      collab: [],
+      spotify: [],
+      followed: [],
+    };
+    for (const p of filtered) by[groupOf(p, me)].push(p);
+    return by;
+  }, [filtered, me]);
+  const searching = q.trim().length > 0;
 
   const targetKey = (id: string) => targets.find((t) => t.id === id)?.key;
   const targetsFull = (id: string) =>
@@ -121,25 +163,71 @@ export function SetupDialog() {
               />
             )}
 
-            {filtered.map((p) => (
-              <Row
-                key={p.id}
-                title={p.name}
-                subtitle={`${p.tracks.total} tracks · ${p.owner.display_name ?? p.owner.id}`}
-                imageUrl={p.images?.[0]?.url}
-                isSource={sourceId === p.id}
-                onSource={() => setSource(p.id)}
-                targetKey={targetKey(p.id)}
-                onToggleTarget={() =>
-                  toggleTarget({
-                    id: p.id,
-                    name: p.name,
-                    imageUrl: p.images?.[0]?.url,
-                  })
-                }
-                targetsFull={targetsFull(p.id)}
-              />
-            ))}
+            {GROUPS.map((g) => {
+              const items = grouped[g.id];
+              if (items.length === 0) return null;
+              // a search always shows its hits, folded or not
+              const open = searching || !collapsed.includes(g.id);
+              return (
+                <section key={g.id} className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(g.id)}
+                    aria-expanded={open}
+                    className="sticky top-0 z-10 flex w-full items-center gap-2 rounded-md bg-background/95 px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground backdrop-blur hover:text-foreground"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 transition-transform",
+                        !open && "-rotate-90",
+                      )}
+                    />
+                    {g.label}
+                    <span className="tabnum font-normal normal-case tracking-normal">
+                      {items.length}
+                    </span>
+                    {g.hint && (
+                      <span className="ml-auto font-normal normal-case tracking-normal text-muted-foreground/70">
+                        {g.hint}
+                      </span>
+                    )}
+                  </button>
+                  {open && (
+                    <div className="space-y-1 pt-1">
+                      {items.map((p) => (
+                        <Row
+                          key={p.id}
+                          title={p.name}
+                          subtitle={`${p.tracks.total} tracks${
+                            g.id === "mine"
+                              ? ""
+                              : ` · ${p.owner.display_name ?? p.owner.id}`
+                          }`}
+                          imageUrl={p.images?.[0]?.url}
+                          isSource={sourceId === p.id}
+                          onSource={() => setSource(p.id)}
+                          targetKey={targetKey(p.id)}
+                          // read-only lists can't be targets — but one picked
+                          // before this rule must still be removable
+                          onToggleTarget={
+                            editable(g.id) || targetKey(p.id)
+                              ? () =>
+                                  toggleTarget({
+                                    id: p.id,
+                                    name: p.name,
+                                    imageUrl: p.images?.[0]?.url,
+                                  })
+                              : undefined
+                          }
+                          targetsFull={targetsFull(p.id)}
+                          readOnly={!editable(g.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
 
             {!loading && filtered.length === 0 && (
               <p className="px-2 py-8 text-center text-sm text-muted-foreground">
@@ -169,6 +257,8 @@ function Row(props: {
   targetKey?: string;
   onToggleTarget?: () => void;
   targetsFull?: boolean;
+  /** shown, but disabled: Spotify won't accept writes to this playlist */
+  readOnly?: boolean;
 }) {
   return (
     <div
@@ -206,6 +296,18 @@ function Row(props: {
         {props.isSource ? "Source" : "Set source"}
       </Button>
 
+      {props.readOnly && !props.onToggleTarget && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="min-w-[84px]"
+          disabled
+          title="You can only add tracks to playlists you own or collaborate on"
+        >
+          <Lock className="mr-1 h-3.5 w-3.5" /> target
+        </Button>
+      )}
+
       {props.onToggleTarget && (
         <Button
           variant={props.targetKey ? "secondary" : "ghost"}
@@ -238,6 +340,8 @@ function SettingsSection() {
     key: keyof Settings;
     label: string;
     hint: string;
+    /** for settings whose absence means "on" */
+    defaultOn?: boolean;
   }[] = [
     {
       key: "autoAdvance",
@@ -269,21 +373,27 @@ function SettingsSection() {
       label: "Autoplay preview",
       hint: "Start the preview automatically on each track.",
     },
+    {
+      key: "visualizer",
+      label: "Visualizer",
+      hint: "Spectrum behind the track and a 3D tilt on the cover.",
+      defaultOn: true,
+    },
   ];
 
   return (
-    <div className="space-y-3 p-6">
+    <div className="grid gap-x-8 gap-y-3 px-6 py-4 sm:grid-cols-2">
       {rows.map((r) => (
-        <div key={r.key} className="flex items-center justify-between gap-4">
+        <label key={r.key} className="flex cursor-pointer items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">{r.label}</p>
             <p className="text-xs text-muted-foreground">{r.hint}</p>
           </div>
           <Switch
-            checked={settings[r.key]}
+            checked={r.defaultOn ? settings[r.key] !== false : !!settings[r.key]}
             onCheckedChange={(v) => setSetting(r.key, v)}
           />
-        </div>
+        </label>
       ))}
     </div>
   );

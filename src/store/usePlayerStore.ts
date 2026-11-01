@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { PreviewVia } from "@/types";
 import { useLibraryStore } from "./useLibraryStore";
 import { registerPreviewElement } from "@/lib/audio-graph";
@@ -54,6 +55,8 @@ interface PlayerState {
   currentTime: number;
   duration: number;
   volume: number;
+  /** level to restore when unmuting */
+  lastVolume: number;
   previewVia: PreviewVia | "loading" | "none" | "spotify";
   sdkStatus: SdkStatus;
   sdkError: string | null;
@@ -67,73 +70,95 @@ interface PlayerState {
   pause: () => void;
   seekFraction: (f: number) => void;
   setVolume: (v: number) => void;
+  toggleMute: () => void;
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
-  url: null,
-  playing: false,
-  buffering: false,
-  currentTime: 0,
-  duration: 30,
-  volume: 0.8,
-  previewVia: "loading",
-  sdkStatus: "off",
-  sdkError: null,
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set, get) => ({
+      url: null,
+      playing: false,
+      buffering: false,
+      currentTime: 0,
+      duration: 30,
+      volume: 0.8,
+      lastVolume: 0.8,
+      previewVia: "loading",
+      sdkStatus: "off",
+      sdkError: null,
 
-  setPreviewVia: (v) => set({ previewVia: v }),
+      setPreviewVia: (v) => set({ previewVia: v }),
 
-  load: (url, autoplay) => {
-    if (!audio) return;
-    set({ url, currentTime: 0 });
-    if (!url) {
-      audio.pause();
-      audio.removeAttribute("src");
-      set({ playing: false });
-      return;
-    }
-    audio.src = url;
-    audio.currentTime = 0;
-    if (autoplay) {
-      audio.play().catch(() => set({ playing: false }));
-    }
-  },
+      load: (url, autoplay) => {
+        if (!audio) return;
+        set({ url, currentTime: 0 });
+        if (!url) {
+          audio.pause();
+          audio.removeAttribute("src");
+          set({ playing: false });
+          return;
+        }
+        audio.src = url;
+        audio.currentTime = 0;
+        if (autoplay) {
+          audio.play().catch(() => set({ playing: false }));
+        }
+      },
 
-  stopPreview: () => {
-    if (!audio) return;
-    audio.pause();
-    audio.removeAttribute("src");
-    set({ url: null });
-  },
+      stopPreview: () => {
+        if (!audio) return;
+        audio.pause();
+        audio.removeAttribute("src");
+        set({ url: null });
+      },
 
-  toggle: () => {
-    if (onSpotify()) return full.toggle();
-    return get().playing ? get().pause() : get().play();
-  },
+      toggle: () => {
+        if (onSpotify()) return full.toggle();
+        return get().playing ? get().pause() : get().play();
+      },
 
-  play: () => {
-    if (onSpotify()) return full.play();
-    if (!audio || !get().url) return;
-    audio.play().catch(() => set({ playing: false }));
-  },
+      play: () => {
+        if (onSpotify()) return full.play();
+        if (!audio || !get().url) return;
+        audio.play().catch(() => set({ playing: false }));
+      },
 
-  pause: () => {
-    if (onSpotify()) return full.pause();
-    audio?.pause();
-  },
+      pause: () => {
+        if (onSpotify()) return full.pause();
+        audio?.pause();
+      },
 
-  seekFraction: (f) => {
-    const clamped = Math.max(0, Math.min(1, f));
-    if (onSpotify()) return full.seek(clamped * get().duration * 1000);
-    if (!audio) return;
-    audio.currentTime = clamped * (audio.duration || get().duration);
-  },
+      seekFraction: (f) => {
+        const clamped = Math.max(0, Math.min(1, f));
+        if (onSpotify()) return full.seek(clamped * get().duration * 1000);
+        if (!audio) return;
+        audio.currentTime = clamped * (audio.duration || get().duration);
+      },
 
-  setVolume: (v) => {
-    if (audio) audio.volume = v;
-    sdkSetVolume(v);
-    set({ volume: v });
-  },
-}));
+      setVolume: (v) => {
+        const vol = Math.max(0, Math.min(1, v));
+        if (audio) audio.volume = vol;
+        sdkSetVolume(vol);
+        set(vol > 0 ? { volume: vol, lastVolume: vol } : { volume: 0 });
+      },
+
+      toggleMute: () => {
+        const { volume, lastVolume } = get();
+        get().setVolume(volume > 0 ? 0 : lastVolume || 0.8);
+      },
+    }),
+    {
+      name: "spoton.player",
+      // only the user's choice survives a reload — transport state is live
+      partialize: (s) => ({ volume: s.volume, lastVolume: s.lastVolume }),
+    },
+  ),
+);
+
+// localStorage hydrates synchronously, so the saved level is known here:
+// apply it to the preview element before anything plays (the SDK reads the
+// store's volume when it connects)
+if (audio) audio.volume = usePlayerStore.getState().volume;
 
 /* The SDK pushes position/duration; the store just mirrors it in seconds. */
 registerSdkListeners({

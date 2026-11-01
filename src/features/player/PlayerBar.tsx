@@ -67,6 +67,7 @@ export function PlayerBar() {
     play,
     seekFraction,
     setVolume,
+    toggleMute,
   } = usePlayerStore();
 
   const fullTracks = useLibraryStore((s) => s.settings.fullTracks);
@@ -283,7 +284,7 @@ export function PlayerBar() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
+            onClick={toggleMute}
             aria-label="Mute"
           >
             {volume > 0 ? (

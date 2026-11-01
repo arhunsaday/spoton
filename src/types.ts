@@ -26,6 +26,8 @@ export interface SpotifyPlaylist {
   images: SpotifyImage[];
   tracks: { total: number };
   owner: { display_name?: string; id: string };
+  /** Anyone the owner invited can edit it — so it's a valid target. */
+  collaborative?: boolean;
   /** Changes on *any* edit to the playlist — our cache validator. */
   snapshot_id?: string;
   /** Synthetic marker for the pseudo-playlist "Liked Songs". */
