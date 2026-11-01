@@ -42,9 +42,7 @@ export function Spectrum({ coverUrl }: { coverUrl: string }) {
       maxDecibels: -22,
       smoothing: 0.7,
       showScaleX: false,
-      showPeaks: true,
-      fadePeaks: true,
-      peakFadeTime: 600,
+      showPeaks: false, // just the bars, no lingering peak markers
       reflexRatio: 0,
       channelLayout: "single",
       maxFPS: 60,
