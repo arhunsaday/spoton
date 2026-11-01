@@ -255,3 +255,16 @@ export async function playTrackOnDevice(
     }),
   });
 }
+
+/** Make a device the active one. Used as a last resort when a freshly booted
+ *  in-app player keeps answering 404 to direct play calls — transferring to
+ *  it forces Spotify Connect to acknowledge it. */
+export async function transferPlayback(
+  deviceId: string,
+  play = false,
+): Promise<void> {
+  await spotifyFetch("/me/player", {
+    method: "PUT",
+    body: JSON.stringify({ device_ids: [deviceId], play }),
+  });
+}

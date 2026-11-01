@@ -17,6 +17,7 @@ import {
   Smartphone,
   Speaker,
   Timer,
+  TriangleAlert,
   Volume2,
   VolumeX,
   Music,
@@ -33,12 +34,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn, formatTime } from "@/lib/utils";
-import { playOnDevice, toggleFullTracks } from "@/lib/playback";
+import {
+  playOnDevice,
+  reconnectFullTracks,
+  toggleFullTracks,
+} from "@/lib/playback";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { getDevices, type SpotifyDevice } from "@/api/spotify";
 import type { SpotifyTrack } from "@/types";
+import type { SdkStatus } from "@/lib/spotify-sdk";
 
 export function PlayerBar() {
   const track = useSessionStore((s) => s.tracks[s.index] ?? null);
@@ -55,6 +61,8 @@ export function PlayerBar() {
     volume,
     previewVia,
     sdkStatus,
+    sdkError,
+    buffering,
     toggle,
     play,
     seekFraction,
@@ -64,20 +72,21 @@ export function PlayerBar() {
   const fullTracks = useLibraryStore((s) => s.settings.fullTracks);
   const cover = track?.album.images.at(-1)?.url ?? track?.album.images[0]?.url;
   const pct = duration ? (currentTime / duration) * 100 : 0;
-  const noPreview = previewVia === "none";
+  const noPreview = !fullTracks && previewVia === "none";
+  const what = fullTracks ? "track" : "preview";
 
   const fs = useFullscreen();
 
   const spotifyUrl = track ? `https://open.spotify.com/track/${track.id}` : "";
   const transportMenu: ContextMenuItem[] = [
     {
-      label: playing ? "Pause preview" : "Play preview",
+      label: playing ? `Pause ${what}` : `Play ${what}`,
       icon: playing ? Pause : Play,
       onSelect: toggle,
       disabled: !track || noPreview,
     },
     {
-      label: "Restart preview",
+      label: `Restart ${what}`,
       icon: RotateCcw,
       onSelect: () => {
         seekFraction(0);
@@ -85,6 +94,18 @@ export function PlayerBar() {
       },
       disabled: !track || noPreview,
     },
+    ...(fullTracks
+      ? [
+          {
+            label:
+              sdkStatus === "error"
+                ? "Reconnect in-app player"
+                : "Restart in-app player",
+            icon: Music,
+            onSelect: reconnectFullTracks,
+          },
+        ]
+      : []),
     {
       label: "Open on Spotify web",
       icon: ExternalLink,
@@ -193,7 +214,9 @@ export function PlayerBar() {
             aria-haspopup="menu"
             aria-label="Play/pause"
           >
-            {playing ? (
+            {buffering && fullTracks ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : playing ? (
               <MaterialSymbolsPauseRounded className="h-6 w-6" />
             ) : (
               <MaterialSymbolsPlayArrowRounded className="h-6 w-6" />
@@ -227,10 +250,7 @@ export function PlayerBar() {
 
       {/* right cluster: jump · volume · fullscreen */}
       <div className="ml-auto flex items-center gap-3">
-        <SourceToggle
-          full={fullTracks}
-          connecting={sdkStatus === "connecting"}
-        />
+        <SourceToggle full={fullTracks} status={sdkStatus} error={sdkError} />
         <DevicePicker track={track} />
 
         {total > 0 && (
@@ -309,35 +329,47 @@ export function PlayerBar() {
  *  the bar rather than in settings. */
 function SourceToggle({
   full,
-  connecting,
+  status,
+  error,
 }: {
   full: boolean;
-  connecting: boolean;
+  status: SdkStatus;
+  error: string | null;
 }) {
+  const connecting = full && status === "connecting";
+  const broken = full && status === "error";
   return (
     <Button
       variant="ghost"
       size="sm"
       aria-pressed={full}
-      onClick={toggleFullTracks}
+      // a broken player gets fixed on click; flipping the mode off would just
+      // hide the problem
+      onClick={broken ? reconnectFullTracks : toggleFullTracks}
       title={
-        full
-          ? "Whole track in this tab — click for 30s previews (F)"
-          : "30s preview — click for whole tracks in this tab (F)"
+        broken
+          ? `${error ?? "In-app player error"} — click to reconnect`
+          : connecting
+            ? "Connecting the in-app Spotify player…"
+            : full
+              ? "Whole track in this tab — click for 30s previews (F)"
+              : "30s preview — click for whole tracks in this tab (F)"
       }
       className={cn(
         "hidden h-7 gap-1.5 px-2 text-sm sm:inline-flex",
-        full ? "" : "",
+        broken && "text-destructive hover:text-destructive",
       )}
     >
       {connecting ? (
         <Loader2 className="h-4 w-4 animate-spin" />
+      ) : broken ? (
+        <TriangleAlert className="h-4 w-4" />
       ) : full ? (
         <Music className="h-4 w-4" />
       ) : (
         <Timer className="h-4 w-4" />
       )}
-      {full ? "Full track" : "Preview"}
+      {broken ? "Reconnect" : full ? "Full track" : "Preview"}
     </Button>
   );
 }

@@ -2,13 +2,8 @@ import { create } from "zustand";
 import type { PreviewVia } from "@/types";
 import { useLibraryStore } from "./useLibraryStore";
 import {
-  activateSdkElement,
   registerSdkListeners,
-  sdkPause,
-  sdkResume,
-  sdkSeek,
   sdkSetVolume,
-  sdkTogglePlay,
   type SdkStatus,
 } from "@/lib/spotify-sdk";
 
@@ -26,9 +21,30 @@ if (audio) {
 
 const onSpotify = () => useLibraryStore.getState().settings.fullTracks;
 
+/** Full-track transport lives in `lib/playback` (it needs the session's
+ *  current track and the start/retry logic); it registers itself here so the
+ *  store doesn't import it back. */
+interface FullTrackControls {
+  toggle: () => void;
+  play: () => void;
+  pause: () => void;
+  seek: (ms: number) => void;
+}
+let full: FullTrackControls = {
+  toggle: () => {},
+  play: () => {},
+  pause: () => {},
+  seek: () => {},
+};
+export function registerFullTrackControls(c: FullTrackControls) {
+  full = c;
+}
+
 interface PlayerState {
   url: string | null;
   playing: boolean;
+  /** a full track has been requested and hasn't started yet */
+  buffering: boolean;
   /** seconds, whichever engine is live */
   currentTime: number;
   duration: number;
@@ -51,6 +67,7 @@ interface PlayerState {
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   url: null,
   playing: false,
+  buffering: false,
   currentTime: 0,
   duration: 30,
   volume: 0.8,
@@ -84,30 +101,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   toggle: () => {
-    if (onSpotify()) {
-      activateSdkElement(); // this click is a user gesture — spend it
-      return sdkTogglePlay();
-    }
+    if (onSpotify()) return full.toggle();
     return get().playing ? get().pause() : get().play();
   },
 
   play: () => {
-    if (onSpotify()) {
-      sdkResume();
-      return;
-    }
+    if (onSpotify()) return full.play();
     if (!audio || !get().url) return;
     audio.play().catch(() => set({ playing: false }));
   },
 
   pause: () => {
-    if (onSpotify()) return sdkPause();
+    if (onSpotify()) return full.pause();
     audio?.pause();
   },
 
   seekFraction: (f) => {
     const clamped = Math.max(0, Math.min(1, f));
-    if (onSpotify()) return sdkSeek(clamped * get().duration * 1000);
+    if (onSpotify()) return full.seek(clamped * get().duration * 1000);
     if (!audio) return;
     audio.currentTime = clamped * (audio.duration || get().duration);
   },
@@ -120,18 +131,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 }));
 
 /* The SDK pushes position/duration; the store just mirrors it in seconds. */
-registerSdkListeners(
-  ({ playing, position, duration }) => {
+registerSdkListeners({
+  state: ({ playing, position, duration }) => {
     if (!onSpotify()) return;
     usePlayerStore.setState({
       playing,
       currentTime: position / 1000,
       duration: duration / 1000 || 1,
+      ...(playing ? { buffering: false } : {}),
     });
   },
-  (sdkStatus, sdkError) =>
+  status: (sdkStatus, sdkError) =>
     usePlayerStore.setState({ sdkStatus, sdkError: sdkError ?? null }),
-);
+});
 
 /* Preview-engine events. Guarded so a stray pause/ended from the idle <audio>
  * can't clobber the SDK's state while full-track mode is live. */

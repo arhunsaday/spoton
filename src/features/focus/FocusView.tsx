@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight, Music2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { playFullTrack } from "@/lib/playback";
+import { holdFullTrack } from "@/lib/playback";
+import { sdkIsOn } from "@/lib/spotify-sdk";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
@@ -37,6 +38,7 @@ export function FocusView() {
   const fullTracks = useLibraryStore((s) => s.settings.fullTracks);
 
   const playing = usePlayerStore((s) => s.playing);
+  const buffering = usePlayerStore((s) => s.buffering);
   const toggle = usePlayerStore((s) => s.toggle);
   const load = usePlayerStore((s) => s.load);
   const stopPreview = usePlayerStore((s) => s.stopPreview);
@@ -61,22 +63,31 @@ export function FocusView() {
     const id = ++reqId.current;
     const modeSwitch = lastMode.current !== fullTracks;
     lastMode.current = fullTracks;
-    setPreviewVia("loading");
     if (fullTracks) {
       stopPreview();
+      // the play button must stay live in full-track mode: even when a start
+      // fails, Space is how you retry it
+      setPreviewVia("spotify");
+      // already holding this track (switching back into full-track mode, or
+      // the effect re-ran) — resume it rather than restarting at the hook
+      if (sdkIsOn(track.uri)) {
+        if (modeSwitch) usePlayerStore.getState().play();
+        return;
+      }
+      // cut the outgoing track at once and show this one idle; with autoplay
+      // off that's all — Space starts it
+      holdFullTrack(track);
+      if (!(autoplay || modeSwitch)) return;
       // Each start is a Spotify write, so holding → would fire one per track
-      // and burn the shared dev-mode quota. Wait for the browsing to settle,
-      // the same way preview prefetching does.
+      // and burn the shared dev-mode quota. Wait for the browsing to settle;
+      // playFullTrack itself drops any start that a newer one superseded.
+      usePlayerStore.setState({ buffering: true });
       const t = window.setTimeout(() => {
-        void playFullTrack(track).then((ok) => {
-          // a failed start flips `fullTracks` off, which re-runs this effect;
-          // reqId has moved on by then, so we don't paint a stale "none"
-          if (id !== reqId.current) return;
-          setPreviewVia(ok ? "spotify" : "none");
-        });
+        if (id === reqId.current) usePlayerStore.getState().play();
       }, START_DEBOUNCE_MS);
       return () => window.clearTimeout(t);
     }
+    setPreviewVia("loading");
     resolvePreview(track).then((res) => {
       if (id !== reqId.current) return; // stale
       setPreviewVia(res.url ? res.via : "none");
@@ -244,7 +255,9 @@ export function FocusView() {
             title={noPreview ? "No preview available" : undefined}
             aria-label="Play/pause"
           >
-            {playing ? (
+            {buffering && fullTracks ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : playing ? (
               <MaterialSymbolsPauseRounded className="h-7 w-7" />
             ) : (
               <MaterialSymbolsPlayArrowRounded className="h-7 w-7" />
