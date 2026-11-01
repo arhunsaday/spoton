@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { PreviewVia } from "@/types";
 import { useLibraryStore } from "./useLibraryStore";
+import { registerPreviewElement } from "@/lib/audio-graph";
 import {
   registerSdkListeners,
   sdkSetVolume,
@@ -17,6 +18,10 @@ const audio =
 if (audio) {
   audio.preload = "auto";
   audio.volume = 0.8;
+  // lets the spectrum analyse previews (iTunes sends ACAO: *); must be set
+  // before any src, or the element is tainted for Web Audio
+  audio.crossOrigin = "anonymous";
+  registerPreviewElement(audio);
 }
 
 const onSpotify = () => useLibraryStore.getState().settings.fullTracks;

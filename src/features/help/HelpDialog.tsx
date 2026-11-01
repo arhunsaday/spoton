@@ -1,6 +1,7 @@
 import { Command } from "cmdk";
 import {
   ArrowLeft,
+  AudioLines,
   ArrowRight,
   ListPlus,
   Music2,
@@ -77,6 +78,18 @@ export function HelpDialog() {
                 label={`Audio source: ${lib().settings.fullTracks ? "full track" : "30s preview"}`}
                 keys={["f"]}
                 onSelect={() => run(toggleFullTracks)}
+              />
+              <Item
+                icon={<AudioLines className="h-4 w-4" />}
+                label={`Visualizer: ${lib().settings.visualizer !== false ? "on" : "off"}`}
+                onSelect={() =>
+                  run(() =>
+                    lib().setSetting(
+                      "visualizer",
+                      lib().settings.visualizer === false,
+                    ),
+                  )
+                }
               />
             </Group>
 

@@ -18,6 +18,8 @@ export interface Settings {
   batchMode: boolean;
   /** play whole tracks through the Web Playback SDK instead of 30s previews. */
   fullTracks: boolean;
+  /** spectrum behind the focus view + cover tilt. Absent on old saves = on. */
+  visualizer?: boolean;
 }
 
 /** Queued (not-yet-applied) batch changes per target playlist. Persisted. */

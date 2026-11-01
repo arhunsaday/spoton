@@ -117,6 +117,16 @@ dashboard, and set `VITE_SPOTIFY_CLIENT_ID` in the host's build environment
     back to previews and tells you why.
   - The speaker icon sends the current track to another Spotify device instead.
 
+### Visualizer
+
+A spectrum rises from the player bar while music plays, tinted from the album
+art. Hovering the cover tilts it in 3D. Turn both off from the `?` palette
+("Visualizer").
+
+- **Previews:** the spectrum is the real frequency analysis of the audio.
+- **Full tracks:** Spotify plays them inside a DRM-protected frame that no page
+  can read, so the spectrum is a simulated beat that follows play/pause.
+
 ## Troubleshooting
 
 | Symptom | Fix |

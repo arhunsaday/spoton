@@ -11,6 +11,8 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { prefetchPreviews, resolvePreview } from "@/lib/preview";
 import type { SpotifyTrack } from "@/types";
+import { Spectrum } from "./Spectrum";
+import { TiltCover } from "./TiltCover";
 
 /** How long browsing has to settle before a full track is actually started. */
 const START_DEBOUNCE_MS = 300;
@@ -36,6 +38,7 @@ export function FocusView() {
   const prev = useSessionStore((s) => s.prev);
   const autoplay = useLibraryStore((s) => s.settings.previewAutoplay);
   const fullTracks = useLibraryStore((s) => s.settings.fullTracks);
+  const visualizer = useLibraryStore((s) => s.settings.visualizer !== false);
 
   const playing = usePlayerStore((s) => s.playing);
   const buffering = usePlayerStore((s) => s.buffering);
@@ -169,6 +172,8 @@ export function FocusView() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
       </div>
 
+      {visualizer && <Spectrum coverUrl={cover} />}
+
       <div className="relative z-10 flex w-full max-w-md flex-col items-center px-6">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
@@ -183,9 +188,10 @@ export function FocusView() {
             <div className="flex w-full items-center justify-center gap-3">
               {/* mirrors the spine's width so the cover stays centred */}
               <div className="w-5 shrink-0" aria-hidden />
-              <div
+              <TiltCover
+                enabled={visualizer}
                 className={cn(
-                  "aspect-square w-full max-w-[clamp(160px,38vh,340px)] overflow-hidden rounded-2xl border border-white/10 shadow-[0_28px_90px_-28px_rgba(0,0,0,0.85)] transition-[filter,opacity] duration-300",
+                  "aspect-square w-full max-w-[clamp(160px,38vh,340px)] transition-[filter,opacity] duration-300",
                   noPreview && "opacity-70 grayscale",
                 )}
               >
@@ -201,13 +207,12 @@ export function FocusView() {
                     <Music2 className="h-10 w-10 text-muted-foreground" />
                   </div>
                 )}
-              </div>
+              </TiltCover>
               {/* album name set like a book spine, reading top to bottom */}
               <p
                 title={track.album.name}
                 className="max-h-[clamp(160px,38vh,320px)] w-5 shrink-0 truncate text-center tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl] self-start mt-2"
               >
-                {track.album.name}
                 {track.album.name}
               </p>
             </div>
