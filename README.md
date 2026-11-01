@@ -117,6 +117,14 @@ dashboard, and set `VITE_SPOTIFY_CLIENT_ID` in the host's build environment
     back to previews and tells you why.
   - The speaker icon sends the current track to another Spotify device instead.
 
+### Discover Weekly and other Spotify playlists
+
+Since 27 November 2024 Spotify hides its own playlists (Discover Weekly,
+Release Radar, Daily Mixes, editorial playlists) from apps in development
+mode, which is what a personal Spoton app has to be. They never show up in
+the list. To sort one, open it in the Spotify app, select all its tracks
+(Ctrl/Cmd+A), add them to a playlist of your own, and use that as the source.
+
 ### Visualizer
 
 A spectrum rises from the player bar while music plays, tinted from the album

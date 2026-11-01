@@ -50,6 +50,17 @@ was confirmed against Spotify's developer blog / docs during the planning chat.
   entry remains, then save.
 - Deployed (non-loopback) builds require a real **HTTPS** URL.
 
+## 4. Spotify-owned playlists hidden — 2024-11-27
+
+- The same 2024-11-27 change removed access to **algorithmic and
+  Spotify-owned editorial playlists** (Discover Weekly, Release Radar, Daily
+  Mixes, "Today's Top Hits"…) for apps in development mode.
+- They never appear in `GET /me/playlists` for this app, and reading one by id
+  fails. Nothing in Spoton can fetch them.
+- Workaround, shown in the setup dialog: copy the tracks into a playlist you own
+  in the Spotify app, then use that as the source.
+- Source: <https://developer.spotify.com/blog/2024-11-27-changes-to-the-web-api>
+
 ## Practical implications baked into the design
 
 - Preview audio = iTunes, not Spotify. Budget for a match-rate < 100% and a

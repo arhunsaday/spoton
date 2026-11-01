@@ -246,6 +246,15 @@ export function SetupDialog() {
               );
             })}
 
+            {/* the API hides these from personal apps — say so, or it reads
+                as a bug when Discover Weekly is missing */}
+            <p className="px-2 pb-2 pt-4 text-xs text-muted-foreground">
+              Discover Weekly, Release Radar, Daily Mixes and other playlists
+              made by Spotify aren&apos;t available to personal apps. To sort
+              one, open it in Spotify, select all tracks and add them to a
+              playlist of yours, then pick that here.
+            </p>
+
             {!loading && filtered.length === 0 && (
               <p className="px-2 py-8 text-center text-sm text-muted-foreground">
                 No playlists match “{q}”.
