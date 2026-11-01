@@ -9,14 +9,13 @@ import {
 } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-/** Max tilt in degrees, and how far the art slides inside its frame. */
+/** Max tilt in degrees. */
 const TILT = 12;
-const SHIFT = 10;
 const SPRING = { stiffness: 220, damping: 22, mass: 0.6 };
 
-/** Album cover that tilts toward the pointer in 3D. The art slides the other
- *  way inside the frame and a glare follows the cursor, so it reads as layers
- *  at different depths, not a flat card. */
+/** Album cover that tilts toward the pointer in 3D, with a glare following
+ *  the cursor. The art itself never moves or crops inside the frame, so the
+ *  whole cover stays visible. */
 export function TiltCover({
   children,
   className,
@@ -40,8 +39,6 @@ export function TiltCover({
 
   const rotateY = useTransform(x, [-0.5, 0.5], [-TILT, TILT]);
   const rotateX = useTransform(y, [-0.5, 0.5], [TILT, -TILT]);
-  const artX = useTransform(x, [-0.5, 0.5], [SHIFT, -SHIFT]);
-  const artY = useTransform(y, [-0.5, 0.5], [SHIFT, -SHIFT]);
   const scale = useTransform(h, [0, 1], [1, 1.03]);
   const glareX = useTransform(x, [-0.5, 0.5], [0, 100]);
   const glareY = useTransform(y, [-0.5, 0.5], [0, 100]);
@@ -75,13 +72,7 @@ export function TiltCover({
           "relative h-full w-full overflow-hidden rounded-2xl border border-white/10 shadow-[0_28px_90px_-28px_rgba(0,0,0,0.85)] outline outline-1 outline-transparent [backface-visibility:hidden]",
         )}
       >
-        {/* oversized so sliding never shows an edge */}
-        <motion.div
-          style={live ? { x: artX, y: artY, scale: 1.08 } : undefined}
-          className="h-full w-full"
-        >
-          {children}
-        </motion.div>
+        {children}
         {live && (
           <motion.div
             aria-hidden
