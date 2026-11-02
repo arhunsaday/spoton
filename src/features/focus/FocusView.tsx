@@ -47,7 +47,6 @@ export function FocusView() {
   const visualizer = useLibraryStore((s) => s.settings.visualizer !== false);
 
   const playing = usePlayerStore((s) => s.playing);
-  const buffering = usePlayerStore((s) => s.buffering);
   const toggle = usePlayerStore((s) => s.toggle);
   const load = usePlayerStore((s) => s.load);
   const stopPreview = usePlayerStore((s) => s.stopPreview);
@@ -201,13 +200,15 @@ export function FocusView() {
             }}
             className="flex w-full flex-col items-center"
           >
-            <div className="flex w-full items-center justify-center gap-3">
-              {/* mirrors the spine's width so the cover stays centred */}
-              <div className="w-5 shrink-0" aria-hidden />
+            <div className="flex w-full justify-center">
+              {/* the box is the cover's size; the album spine hangs off its
+                  right edge, so it can never be taller than the cover or move
+                  anything when the album name changes */}
+              <div className="relative aspect-square w-[calc(100%-4rem)] max-w-[min(56vh,560px)]">
               <TiltCover
                 enabled={visualizer && !coarse}
                 className={cn(
-                  "aspect-square w-full max-w-[min(56vh,560px)] transition-[filter,opacity] duration-300",
+                  "h-full w-full transition-[filter,opacity] duration-300",
                   noPreview && "opacity-70 grayscale",
                 )}
               >
@@ -232,34 +233,16 @@ export function FocusView() {
                     <Music2 className="h-10 w-10 text-muted-foreground" />
                   </div>
                 )}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-[opacity,background-color] duration-200",
-                    !noPreview && "group-hover/cover:bg-black/25 group-hover/cover:opacity-100 group-focus-visible/cover:opacity-100",
-                    // paused: say so, quietly, without hovering
-                    !playing && !noPreview && "bg-black/20 opacity-100",
-                  )}
-                >
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
-                    {buffering && fullTracks ? (
-                      <Loader2 className="h-7 w-7 animate-spin" />
-                    ) : playing ? (
-                      <MaterialSymbolsPauseRounded className="h-9 w-9" />
-                    ) : (
-                      <MaterialSymbolsPlayArrowRounded className="h-9 w-9" />
-                    )}
-                  </span>
-                </span>
                 </button>
               </TiltCover>
               {/* album name set like a book spine, reading top to bottom */}
               <p
                 title={track.album.name}
-                className="max-h-[min(56vh,540px)] w-5 shrink-0 truncate text-center tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl] self-start mt-2"
+                className="absolute inset-y-2 left-full ml-3 w-5 truncate tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl]"
               >
                 {track.album.name}
               </p>
+              </div>
             </div>
 
             <h1 className="mt-6 line-clamp-2 text-balance text-center text-2xl font-bold tracking-tight hover:text-white/60 md:text-3xl xl:text-4xl">
@@ -273,7 +256,7 @@ export function FocusView() {
                 {track.name}
               </a>
             </h1>
-            <p className="mt-1.5 text-center text-lg text-muted-foreground xl:text-xl">
+            <p className="mt-1.5 w-full truncate text-center text-lg text-muted-foreground xl:text-xl">
               <a
                 href={`https://open.spotify.com/artist/${track.artists[0].id}`}
                 target="_blank"
