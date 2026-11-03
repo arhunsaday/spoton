@@ -2,6 +2,7 @@ import { Command } from "cmdk";
 import {
   ArrowLeft,
   AudioLines,
+  GalleryVertical,
   ArrowRight,
   ListPlus,
   Music2,
@@ -44,6 +45,20 @@ export function HelpDialog() {
             <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
               No matching action.
             </Command.Empty>
+
+            <Group heading="View">
+              <Item
+                icon={<GalleryVertical className="h-4 w-4" />}
+                label={`Switch to ${useUiStore.getState().view === "feed" ? "focus" : "feed"} view`}
+                onSelect={() =>
+                  run(() =>
+                    useUiStore
+                      .getState()
+                      .setView(useUiStore.getState().view === "feed" ? "focus" : "feed"),
+                  )
+                }
+              />
+            </Group>
 
             <Group heading="Navigate">
               <Item

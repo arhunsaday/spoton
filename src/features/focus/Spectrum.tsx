@@ -4,6 +4,7 @@ import { getAudioContext, getTap, setSimulatedSignal } from "@/lib/audio-graph";
 import { dominantColor } from "@/lib/color";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
+import { cn } from "@/lib/utils";
 
 /** Fallback tint: the app's indigo accent (243 75% 63%). */
 const DEFAULT_RGB = "109, 99, 234";
@@ -12,7 +13,14 @@ const SETTLE_MS = 1200;
 
 /** Full-width spectrum rising from the player bar, behind the focus view.
  *  Real FFT for previews; a simulated beat for full tracks (see audio-graph). */
-export function Spectrum({ coverUrl }: { coverUrl: string }) {
+export function Spectrum({
+  coverUrl,
+  className,
+}: {
+  coverUrl: string;
+  /** override the default height */
+  className?: string;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const am = useRef<AudioMotionAnalyzer | null>(null);
   const playing = usePlayerStore((s) => s.playing);
@@ -90,7 +98,10 @@ export function Spectrum({ coverUrl }: { coverUrl: string }) {
     <div
       ref={box}
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] max-h-64 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-0 h-[30%] max-h-64 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]",
+        className,
+      )}
     />
   );
 }

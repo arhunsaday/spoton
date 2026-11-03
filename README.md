@@ -99,6 +99,25 @@ dashboard, and set `VITE_SPOTIFY_CLIENT_ID` in the host's build environment
    | `f` | switch between 30s preview and full track |
    | `?` | command palette / all shortcuts |
 
+### Feed view (swipe)
+
+Switch **Focus / Feed** in the top bar. The feed shows one track per screen,
+TikTok style:
+
+| Gesture | Keys | Action |
+| --- | --- | --- |
+| swipe up / down, mouse wheel | `↓` / `↑` | next / previous track |
+| swipe right | `→` | add to the right-swipe playlist, then next |
+| swipe left | `←` | skip (or add to the left-swipe playlist), then next |
+| double-tap | | same as swipe right |
+| tap | `Space` | play / pause |
+
+Choose what each side does with the two pills at the top of the feed. A swipe
+only ever **adds**: a track that's already in that playlist is left as is. On
+phones, the column on the right files the track to any target in one tap, so
+you can add it to several. In batch mode, the **Apply** button replaces the
+counter at the top.
+
 ### Audio: preview vs. full track
 
 - **Preview (default):** a 30s clip found through the iTunes Search API. It

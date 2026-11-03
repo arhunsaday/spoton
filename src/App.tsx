@@ -15,6 +15,8 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useUiStore } from "@/store/useUiStore";
 import { useKeyboard } from "@/hooks/useKeyboard";
+import { useTrackAudio } from "@/hooks/useTrackAudio";
+import { FeedView } from "@/features/feed/FeedView";
 import { onQuotaExceeded } from "@/api/client";
 
 let didInit = false; // survive React 18 StrictMode double-mount (OAuth code is single-use)
@@ -78,19 +80,29 @@ export default function App() {
   if (status === "loading") return <Splash />;
   if (status !== "authed") return <LoginScreen />;
 
+  return <Shell />;
+}
+
+/** The signed-in app. Its own component so the audio hook only runs while
+ *  there's a session to play. */
+function Shell() {
+  useTrackAudio();
+  const view = useUiStore((s) => s.view);
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col">
         <TopBar />
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1">
-            <FocusView />
+            {view === "feed" ? <FeedView /> : <FocusView />}
           </main>
           <aside className="hidden w-72 shrink-0 border-l border-border md:block xl:w-80">
             <TargetRail />
           </aside>
         </div>
-        <TargetStrip />
+        {/* the feed carries its own target column on phones */}
+        {view !== "feed" && <TargetStrip />}
         <PlayerBar />
       </div>
       <SetupDialog />

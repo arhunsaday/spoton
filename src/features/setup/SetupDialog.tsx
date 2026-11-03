@@ -5,6 +5,7 @@ import {
   ListMusic,
   Loader2,
   Lock,
+  LogOut,
   Plus,
   RefreshCw,
   Search,
@@ -270,6 +271,18 @@ export function SetupDialog() {
           className="mt-0 min-h-0 flex-1 overflow-y-auto border-t border-border scrollbar-thin data-[state=inactive]:hidden"
         >
           <SettingsSection />
+          {/* phones have no top-bar logout — it lives here */}
+          <div className="border-t border-border px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                useAuthStore.getState().logout();
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Log out
+            </Button>
+          </div>
         </TabsContent>
         </Tabs>
 

@@ -4,6 +4,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useUiStore } from "@/store/useUiStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { toggleFullTracks } from "@/lib/playback";
+import { feedControls } from "@/features/feed/swipe";
 
 /** Global keydown handler. The whole point of the app: keyboard-first sorting. */
 export function useKeyboard(enabled: boolean) {
@@ -31,6 +32,25 @@ export function useKeyboard(enabled: boolean) {
       const player = usePlayerStore.getState();
 
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+      // feed view: ↑/↓ page through the deck, ←/→ (h/l) swipe the card
+      const feed = ui.view === "feed" ? feedControls() : null;
+      if (feed) {
+        const map: Record<string, () => void> = {
+          ArrowDown: () => feed.page(1),
+          ArrowUp: () => feed.page(-1),
+          ArrowRight: () => feed.swipe("right"),
+          l: () => feed.swipe("right"),
+          ArrowLeft: () => feed.swipe("left"),
+          h: () => feed.swipe("left"),
+        };
+        const fn = map[key];
+        if (fn) {
+          fn();
+          e.preventDefault();
+          return;
+        }
+      }
 
       if (e.key === "ArrowRight" || key === "l") {
         session.next();

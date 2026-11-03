@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import {
   Check,
   ChevronDown,
+  Disc3,
+  GalleryVertical,
   Heart,
   Keyboard,
   ListMusic,
@@ -22,6 +24,37 @@ import { LIKED_SOURCE_ID, useLibraryStore } from "@/store/useLibraryStore";
 import { countPending, useSessionStore } from "@/store/useSessionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUiStore } from "@/store/useUiStore";
+import { cn } from "@/lib/utils";
+
+/** Focus (one track, keyboard-first) ↔ Feed (swipe deck). */
+function ViewToggle() {
+  const view = useUiStore((s) => s.view);
+  const setView = useUiStore((s) => s.setView);
+  const opts = [
+    { id: "focus" as const, label: "Focus", Icon: Disc3 },
+    { id: "feed" as const, label: "Feed", Icon: GalleryVertical },
+  ];
+  return (
+    <div role="radiogroup" aria-label="View" className="mr-1 flex h-9 items-center rounded-lg bg-secondary p-1">
+      {opts.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          role="radio"
+          aria-checked={view === id}
+          onClick={() => setView(id)}
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+            view === id && "bg-background text-foreground shadow-sm",
+          )}
+        >
+          <Icon className="h-4 w-4" />
+          <span className="hidden sm:inline">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function TopBar() {
   const sourceId = useLibraryStore((s) => s.sourceId);
@@ -171,6 +204,8 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        <ViewToggle />
+
         {user && user.product !== "premium" && (
           <Badge variant="warning">Non premium account</Badge>
         )}
@@ -178,6 +213,7 @@ export function TopBar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
+              className="hidden md:inline-flex"
               variant="ghost"
               size="icon-sm"
               onClick={() => toggleHelp()}
@@ -194,6 +230,7 @@ export function TopBar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
+              className="hidden md:inline-flex"
               variant="ghost"
               size="icon-sm"
               onClick={logout}
