@@ -40,10 +40,10 @@ interface LibraryState {
   pending: Pending;
   /** setup-dialog playlist groups the user folded away */
   collapsedGroups: string[];
-  /** feed swipes: target id, null = just skip, undefined = default
-   *  (right → first target, left → skip) */
-  swipe: { right?: string | null; left?: string | null };
-  setSwipe: (side: "left" | "right", targetId: string | null) => void;
+  /** the one playlist the feed's swipe-right adds to (independent of the
+   *  hotkey targets) */
+  feedTargetId: string | null;
+  setFeedTarget: (id: string | null) => void;
   toggleGroup: (id: string) => void;
 
   loadPlaylists: (force?: boolean) => Promise<void>;
@@ -99,10 +99,8 @@ export const useLibraryStore = create<LibraryState>()(
       positions: {},
       pending: {},
       collapsedGroups: [],
-      swipe: {},
-
-      setSwipe: (side, targetId) =>
-        set({ swipe: { ...get().swipe, [side]: targetId } }),
+      feedTargetId: null,
+      setFeedTarget: (id) => set({ feedTargetId: id }),
 
       toggleGroup: (id) => {
         const cur = get().collapsedGroups;
@@ -242,7 +240,7 @@ export const useLibraryStore = create<LibraryState>()(
         positions: s.positions,
         pending: s.pending,
         collapsedGroups: s.collapsedGroups,
-        swipe: s.swipe,
+        feedTargetId: s.feedTargetId,
       }),
     },
   ),

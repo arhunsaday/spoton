@@ -97,13 +97,15 @@ function Shell() {
           <main className="min-w-0 flex-1">
             {view === "feed" ? <FeedView /> : <FocusView />}
           </main>
-          <aside className="hidden w-72 shrink-0 border-l border-border md:block xl:w-80">
-            <TargetRail />
-          </aside>
+          {/* the feed is single-playlist: no hotkey targets, no player bar */}
+          {view !== "feed" && (
+            <aside className="hidden w-72 shrink-0 border-l border-border md:block xl:w-80">
+              <TargetRail />
+            </aside>
+          )}
         </div>
-        {/* the feed carries its own target column on phones */}
         {view !== "feed" && <TargetStrip />}
-        <PlayerBar />
+        {view !== "feed" && <PlayerBar />}
       </div>
       <SetupDialog />
       <HelpDialog />

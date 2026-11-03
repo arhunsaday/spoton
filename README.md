@@ -101,22 +101,22 @@ dashboard, and set `VITE_SPOTIFY_CLIENT_ID` in the host's build environment
 
 ### Feed view (swipe)
 
-Switch **Focus / Feed** in the top bar. The feed shows one track per screen,
-TikTok style:
+Switch **Focus / Feed** in the top bar. The feed is for exploring the source
+playlist and keeping what you like in **one** playlist: just the cover, the
+title and the visualizer.
 
 | Gesture | Keys | Action |
 | --- | --- | --- |
 | swipe up / down, mouse wheel | `↓` / `↑` | next / previous track |
-| swipe right | `→` | add to the right-swipe playlist, then next |
-| swipe left | `←` | skip (or add to the left-swipe playlist), then next |
-| double-tap | | same as swipe right |
+| swipe right, double-tap | `→` | add to the feed playlist, then next |
+| swipe left | `←` | skip |
 | tap | `Space` | play / pause |
 
-Choose what each side does with the two pills at the top of the feed. A swipe
-only ever **adds**: a track that's already in that playlist is left as is. On
-phones, the column on the right files the track to any target in one tap, so
-you can add it to several. In batch mode, the **Apply** button replaces the
-counter at the top.
+Pick the feed playlist in the setup dialog's **Feed** tab. It's separate from
+the hotkey targets, and you can choose Liked Songs or any playlist you can
+edit. Adds go straight to Spotify (no Apply step), each with an Undo in the
+toast. A track that's already in the feed playlist shows a ✓ and is never
+added twice.
 
 ### Audio: preview vs. full track
 

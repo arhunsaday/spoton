@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   ChevronDown,
+  GalleryVertical,
   Heart,
   ListMusic,
   Loader2,
@@ -67,6 +69,8 @@ export function SetupDialog() {
   const setSource = useLibraryStore((s) => s.setSource);
   const targets = useLibraryStore((s) => s.targets);
   const toggleTarget = useLibraryStore((s) => s.toggleTarget);
+  const tab = useUiStore((s) => s.setupTab);
+  const setTab = useUiStore((s) => s.setSetupTab);
   const collapsed = useLibraryStore((s) => s.collapsedGroups);
   const toggleGroup = useLibraryStore((s) => s.toggleGroup);
   const me = useAuthStore((s) => s.user?.id);
@@ -112,7 +116,11 @@ export function SetupDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="flex h-[min(86vh,780px)] max-w-2xl flex-col gap-0 p-0">
-        <Tabs defaultValue="playlists" className="flex min-h-0 flex-1 flex-col">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as typeof tab)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
         <DialogHeader className="space-y-3 p-6 pb-4">
           <div>
             <DialogTitle>Set up your session</DialogTitle>
@@ -124,6 +132,9 @@ export function SetupDialog() {
           <TabsList className="self-start">
             <TabsTrigger value="playlists">
               <ListMusic className="h-4 w-4" /> Playlists
+            </TabsTrigger>
+            <TabsTrigger value="feed">
+              <GalleryVertical className="h-4 w-4" /> Feed
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings2 className="h-4 w-4" /> Settings
@@ -267,6 +278,13 @@ export function SetupDialog() {
         </TabsContent>
 
         <TabsContent
+          value="feed"
+          className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+        >
+          <FeedTargetPicker />
+        </TabsContent>
+
+        <TabsContent
           value="settings"
           className="mt-0 min-h-0 flex-1 overflow-y-auto border-t border-border scrollbar-thin data-[state=inactive]:hidden"
         >
@@ -376,6 +394,76 @@ function Row(props: {
         </Button>
       )}
     </div>
+  );
+}
+
+/** The feed's one destination: any playlist you can write to (or Liked
+ *  Songs), chosen independently of the hotkey targets. */
+function FeedTargetPicker() {
+  const playlists = useLibraryStore((s) => s.playlists);
+  const feedTargetId = useLibraryStore((s) => s.feedTargetId);
+  const setFeedTarget = useLibraryStore((s) => s.setFeedTarget);
+  const me = useAuthStore((s) => s.user?.id);
+  const [q, setQ] = useState("");
+
+  const options = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const writable = playlists.filter((p) => editable(groupOf(p, me)));
+    const all = [
+      { id: LIKED_SOURCE_ID, name: "Liked Songs", sub: "your saved tracks", img: undefined as string | undefined },
+      ...writable.map((p) => ({ id: p.id, name: p.name, sub: `${p.tracks.total} tracks`, img: p.images?.[0]?.url })),
+    ];
+    return term ? all.filter((o) => o.name.toLowerCase().includes(term)) : all;
+  }, [playlists, me, q]);
+
+  return (
+    <>
+      <div className="space-y-3 px-6 pb-4">
+        <p className="text-sm text-muted-foreground">
+          In the feed, swiping right adds the track here — straight to Spotify,
+          no Apply needed. Only playlists you can edit are listed.
+        </p>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search playlists" className="pl-8" />
+        </div>
+      </div>
+      <div role="radiogroup" aria-label="Feed playlist" className="min-h-0 flex-1 space-y-1 overflow-y-auto border-t border-border p-3 scrollbar-thin">
+        {options.map((o) => {
+          const on = o.id === feedTargetId;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setFeedTarget(o.id)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg border border-transparent p-2 text-left transition-colors hover:bg-accent",
+                on && "border-success/40 bg-success/10",
+              )}
+            >
+              {o.img ? (
+                <img src={o.img} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover drag-none" draggable={false} />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary">
+                  {o.id === LIKED_SOURCE_ID ? (
+                    <Heart className="h-5 w-5 text-primary stroke-[0.2rem]" />
+                  ) : (
+                    <ListMusic className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{o.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{o.sub}</p>
+              </div>
+              {on && <Check className="h-5 w-5 shrink-0 text-success" />}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

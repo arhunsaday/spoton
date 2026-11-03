@@ -10,27 +10,25 @@ import {
 } from "framer-motion";
 import {
   Check,
-  ChevronDown,
   Heart,
-  ListMusic,
   Loader2,
   Music2,
-  Pencil,
   SkipForward,
-  Upload,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { coverUrl } from "@/lib/cover";
-import { LIKED_SOURCE_ID, useLibraryStore } from "@/store/useLibraryStore";
-import { countPending, useSessionStore } from "@/store/useSessionStore";
+import { useLibraryStore } from "@/store/useLibraryStore";
+import { useSessionStore } from "@/store/useSessionStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useUiStore } from "@/store/useUiStore";
 import { Spectrum } from "@/features/focus/Spectrum";
-import type { SpotifyTrack, Target } from "@/types";
+import type { SpotifyTrack } from "@/types";
 import {
   commitSwipe,
+  feedTarget,
   registerFeedControls,
-  swipeTarget,
+  useFeedStore,
   type Side,
 } from "./swipe";
 
@@ -60,8 +58,15 @@ export function FeedView() {
   const visualizer = useLibraryStore((s) => s.settings.visualizer !== false);
   const openSetup = useUiStore((s) => s.setSetupOpen);
 
+  const feedTargetId = useLibraryStore((s) => s.feedTargetId);
+  const loadFeedIds = useFeedStore((s) => s.load);
   const track = tracks[index] ?? null;
   const cover = coverUrl(track, 600);
+
+  // what's already in the feed playlist, so a swipe never adds it twice
+  useEffect(() => {
+    if (feedTargetId) void loadFeedIds(feedTargetId);
+  }, [feedTargetId, loadFeedIds]);
 
   // warm covers a few cards ahead: paging must never show an empty square
   useEffect(() => {
@@ -90,10 +95,10 @@ export function FeedView() {
         </p>
         <button
           type="button"
-          onClick={() => openSetup(true)}
+          onClick={() => openSetup(true, "playlists")}
           className="mt-2 h-11 rounded-full bg-secondary px-5 text-sm font-medium"
         >
-          Choose playlists
+          Choose a playlist to explore
         </button>
       </Centered>
     );
@@ -104,9 +109,7 @@ export function FeedView() {
       <Backdrop cover={cover} />
       {visualizer && <Spectrum coverUrl={cover} className="h-[14%] max-h-32" />}
       <Deck tracks={tracks} index={index} />
-      <Header />
-      <Rail track={track} />
-      <Hint />
+      {feedTargetId ? <Hint /> : <PickTarget />}
     </div>
   );
 }
@@ -134,7 +137,7 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
   const enter = useMotionValue(1);
 
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
-  const [flash, setFlash] = useState<{ id: number; target: Target | null } | null>(null);
+  const [flash, setFlash] = useState<{ id: number; text: string; ok: boolean } | null>(null);
 
   // the confirmation lingers a moment, then leaves
   useEffect(() => {
@@ -168,19 +171,28 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
   const swipe = useCallback(
     (side: Side) => {
       if (busy.current || !useSessionStore.getState().current()) return;
+      const target = feedTarget();
+      if (side === "right" && !target) {
+        // nowhere to add yet: bounce back and ask
+        void animate(cardX, 0, SNAP);
+        useUiStore.getState().setSetupOpen(true, "feed");
+        return;
+      }
       busy.current = true;
       dismissHint();
       navigator.vibrate?.(12);
       const dx = (side === "right" ? 1 : -1) * width() * 1.25;
       void animate(cardX, dx, FLY).then(() => {
         enter.jump(0.9);
-        let added: Target | null = null;
+        let result = "skipped";
         flushSync(() => {
-          added = commitSwipe(side).added;
+          result = commitSwipe(side);
         });
         cardX.jump(0);
         void animate(enter, 1, SNAP);
-        setFlash({ id: Date.now(), target: added });
+        if (result === "added") setFlash({ id: Date.now(), text: target!.name, ok: true });
+        else if (result === "already")
+          setFlash({ id: Date.now(), text: `Already in ${target!.name}`, ok: false });
         busy.current = false;
       });
     },
@@ -363,19 +375,12 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "pointer-events-none absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur",
-              flash.target ? "bg-success/90 text-success-foreground" : "bg-secondary/90 text-foreground",
+              "pointer-events-none absolute left-1/2 top-6 z-30 flex max-w-[80%] -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur",
+              flash.ok ? "bg-success/90 text-success-foreground" : "bg-secondary/90 text-foreground",
             )}
           >
-            {flash.target ? (
-              <>
-                <Check className="h-4 w-4" /> {flash.target.name}
-              </>
-            ) : (
-              <>
-                <SkipForward className="h-4 w-4" /> Skipped
-              </>
-            )}
+            <Check className="h-4 w-4 shrink-0" />
+            <span className="truncate">{flash.text}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -399,14 +404,28 @@ function CurrentCard({
   const right = useTransform(x, [20, 120], [0, 1]);
   const left = useTransform(x, [-120, -20], [1, 0]);
   const opacity = useTransform(enter, [0.9, 1], [0, 1]);
-  const rightT = swipeTarget("right");
-  const leftT = swipeTarget("left");
+  const target = feedTarget();
+  const paused = usePlayerStore((s) => !s.playing && !s.buffering && s.previewVia !== "none");
 
   return (
     <motion.div style={{ x, rotate, scale: enter, opacity }} className="h-full w-full origin-bottom">
       <Card track={track}>
-        <Stamp side="right" style={right} target={rightT} />
-        <Stamp side="left" style={left} target={leftT} />
+        <Stamp side="right" style={right} label={target?.name ?? "Pick a playlist"} />
+        <Stamp side="left" style={left} label="Skip" />
+        <AnimatePresence>
+          {paused && (
+            <motion.span
+              initial={{ opacity: 0, scale: 1.3 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.18 }}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <Play className="h-16 w-16 fill-white/85 text-white/85 drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]" />
+            </motion.span>
+          )}
+        </AnimatePresence>
       </Card>
     </motion.div>
   );
@@ -414,22 +433,25 @@ function CurrentCard({
 
 function Card({ track, children }: { track: SpotifyTrack; children?: React.ReactNode }) {
   const cover = coverUrl(track, 600);
-  const targets = useLibraryStore((s) => s.targets);
-  const membership = useSessionStore((s) => s.membership);
-  const noPreview = usePlayerStore(
-    (s) => s.previewVia === "none" && !useLibraryStore.getState().settings.fullTracks,
-  );
-  const inTargets = targets.filter((t) => membership[t.id]?.has(track.id));
+  const inFeed = useFeedStore((s) => !!s.ids?.has(track.id));
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center px-6 pb-8 pr-20 pt-16 md:pr-6">
-      <div className="relative aspect-square w-[min(100%,calc(100dvh-22rem),520px)] min-w-[180px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]">
+    <div className="flex h-full w-full flex-col items-center justify-center px-6 pb-10 pt-8">
+      <div className="relative aspect-square w-[min(100%,calc(100dvh-17rem),560px)] min-w-[180px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]">
         {cover ? (
           <img src={cover} alt="" draggable={false} className="h-full w-full object-cover drag-none" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-secondary">
             <Music2 className="h-12 w-12 text-muted-foreground" />
           </div>
+        )}
+        {inFeed && (
+          <span
+            title="Already in your feed playlist"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-success text-success-foreground shadow-lg"
+          >
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </span>
         )}
         {children}
       </div>
@@ -441,22 +463,6 @@ function Card({ track, children }: { track: SpotifyTrack; children?: React.React
         <p className="mt-1 truncate text-lg text-muted-foreground">
           {track.artists.map((a) => a.name).join(", ")}
         </p>
-        <p className="truncate text-sm text-muted-foreground/70">{track.album.name}</p>
-        <div className="mt-3 flex min-h-7 flex-wrap justify-center gap-1.5">
-          {inTargets.map((t) => (
-            <span
-              key={t.id}
-              className="flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success"
-            >
-              <Check className="h-3 w-3" /> {t.name}
-            </span>
-          ))}
-          {noPreview && (
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-              no preview
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -465,34 +471,31 @@ function Card({ track, children }: { track: SpotifyTrack; children?: React.React
 function Stamp({
   side,
   style,
-  target,
+  label,
 }: {
   side: Side;
   style: MotionValue<number>;
-  target: Target | null;
+  label: string;
 }) {
-  const add = !!target;
+  const add = side === "right";
   return (
     <motion.div
       style={{ opacity: style }}
       className={cn(
         "pointer-events-none absolute inset-0 flex items-start p-5",
-        side === "right" ? "justify-start" : "justify-end",
         add
-          ? "bg-gradient-to-br from-success/35 via-transparent to-transparent"
-          : "bg-gradient-to-bl from-black/50 via-transparent to-transparent",
-        side === "left" && add && "bg-gradient-to-bl",
+          ? "justify-start bg-gradient-to-br from-success/35 via-transparent to-transparent"
+          : "justify-end bg-gradient-to-bl from-black/50 via-transparent to-transparent",
       )}
     >
       <span
         className={cn(
           "flex max-w-[80%] items-center gap-1.5 truncate rounded-xl border-[3px] px-3 py-1.5 text-lg font-extrabold uppercase tracking-wide shadow-lg",
-          side === "right" ? "-rotate-12" : "rotate-12",
-          add ? "border-success bg-success/20 text-success" : "border-white/80 bg-black/30 text-white",
+          add ? "-rotate-12 border-success bg-success/20 text-success" : "rotate-12 border-white/80 bg-black/30 text-white",
         )}
       >
         {add ? <Check className="h-5 w-5 shrink-0" /> : <SkipForward className="h-5 w-5 shrink-0" />}
-        <span className="truncate">{add ? target!.name : "Skip"}</span>
+        <span className="truncate">{label}</span>
       </span>
     </motion.div>
   );
@@ -523,175 +526,11 @@ function Backdrop({ cover }: { cover: string }) {
   );
 }
 
-/** Swipe mapping (what ← and → do) + position. */
-function Header() {
-  const targets = useLibraryStore((s) => s.targets);
-  const swipe = useLibraryStore((s) => s.swipe);
-  const setSwipe = useLibraryStore((s) => s.setSwipe);
-  const index = useSessionStore((s) => s.index);
-  const total = useSessionStore((s) => s.tracks.length);
-  const batchMode = useLibraryStore((s) => s.settings.batchMode);
-  const membership = useSessionStore((s) => s.membership);
-  const baseMembership = useSessionStore((s) => s.baseMembership);
-  const applyPending = useSessionStore((s) => s.applyPending);
-  const applying = useSessionStore((s) => s.applying);
-  const pending = countPending(baseMembership, membership, targets);
-
-  const value = (side: Side) => swipeTarget(side)?.id ?? "";
-  // re-render on mapping changes
-  void swipe;
-
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 px-3 pt-3">
-      <SwipeSelect
-        side="left"
-        value={value("left")}
-        targets={targets}
-        onChange={(id) => setSwipe("left", id || null)}
-      />
-      <div className="pointer-events-auto flex items-center gap-2">
-        {batchMode && pending > 0 ? (
-          <button
-            type="button"
-            onClick={() => void applyPending()}
-            disabled={applying}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-lg disabled:opacity-70"
-          >
-            {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Apply {pending}
-          </button>
-        ) : (
-          <span className="rounded-full bg-black/30 px-3 py-1 text-xs text-muted-foreground backdrop-blur tabnum">
-            {index + 1} / {total}
-          </span>
-        )}
-      </div>
-      <SwipeSelect
-        side="right"
-        value={value("right")}
-        targets={targets}
-        onChange={(id) => setSwipe("right", id || null)}
-      />
-    </div>
-  );
-}
-
-function SwipeSelect({
-  side,
-  value,
-  targets,
-  onChange,
-}: {
-  side: Side;
-  value: string;
-  targets: Target[];
-  onChange: (id: string) => void;
-}) {
-  const label = targets.find((t) => t.id === value)?.name ?? "Skip";
-  return (
-    <label
-      className={cn(
-        "pointer-events-auto relative flex h-9 min-w-0 max-w-[40%] items-center gap-1.5 rounded-full border border-white/10 bg-black/35 px-3 text-sm backdrop-blur",
-        value ? "text-success" : "text-muted-foreground",
-      )}
-      title={`Swipe ${side}: ${label}`}
-    >
-      {side === "left" && <span aria-hidden>←</span>}
-      <span className="truncate font-medium">{label}</span>
-      {side === "right" && <span aria-hidden>→</span>}
-      <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
-      <select
-        aria-label={`Swipe ${side} action`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="absolute inset-0 cursor-pointer opacity-0"
-      >
-        <option value="">Skip</option>
-        {targets.map((t) => (
-          <option key={t.id} value={t.id}>
-            Add to {t.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-/** Phones: TikTok-style action column — tap to file to any target, several
- *  per track if you like. Desktop has the full rail beside the feed. */
-function Rail({ track }: { track: SpotifyTrack }) {
-  const targets = useLibraryStore((s) => s.targets);
-  const membership = useSessionStore((s) => s.membership);
-  const file = useSessionStore((s) => s.fileToTarget);
-  const openSetup = useUiStore((s) => s.setSetupOpen);
-
-  return (
-    <div className="scrollbar-none absolute bottom-6 right-2 z-20 flex max-h-[70%] flex-col items-center gap-3 overflow-y-auto py-2 md:hidden">
-      {targets.map((t) => {
-        const isIn = membership[t.id]?.has(track.id);
-        return (
-          <motion.button
-            key={t.id}
-            type="button"
-            whileTap={{ scale: 0.85 }}
-            onClick={() => {
-              navigator.vibrate?.(8);
-              void file(t.key);
-            }}
-            aria-pressed={!!isIn}
-            aria-label={`${isIn ? "Remove from" : "Add to"} ${t.name}`}
-            className="flex w-16 flex-col items-center gap-1"
-          >
-            <span
-              className={cn(
-                "relative flex h-12 w-12 items-center justify-center rounded-full border-2 bg-black/40 shadow-lg backdrop-blur transition-colors",
-                isIn ? "border-success" : "border-white/20",
-              )}
-            >
-              {t.imageUrl ? (
-                <img src={t.imageUrl} alt="" className="h-full w-full rounded-full object-cover" draggable={false} />
-              ) : t.id === LIKED_SOURCE_ID ? (
-                <Heart className="h-5 w-5 text-primary" />
-              ) : (
-                <ListMusic className="h-5 w-5 text-muted-foreground" />
-              )}
-              <AnimatePresence>
-                {isIn && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground"
-                  >
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </span>
-            <span className="w-full truncate text-center text-[11px] font-medium text-foreground/90 drop-shadow">
-              {t.name}
-            </span>
-          </motion.button>
-        );
-      })}
-      <button
-        type="button"
-        onClick={() => openSetup(true)}
-        aria-label="Edit targets"
-        className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-white/25 bg-black/30 text-muted-foreground backdrop-blur"
-      >
-        <Pencil className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
 /** First-run gesture hint. */
 function Hint() {
   const seen = useUiStore((s) => s.feedHintSeen);
   const dismiss = useUiStore((s) => s.dismissFeedHint);
-  const right = swipeTarget("right");
-  const left = swipeTarget("left");
+  const target = feedTarget();
   return (
     <AnimatePresence>
       {!seen && (
@@ -703,9 +542,9 @@ function Hint() {
         >
           <ul className="space-y-1.5 text-muted-foreground">
             <li><b className="text-foreground">Swipe up / down</b> (↑ ↓, wheel) — next / previous</li>
-            <li><b className="text-foreground">Swipe right</b> (→) — {right ? `add to ${right.name}` : "skip"}</li>
-            <li><b className="text-foreground">Swipe left</b> (←) — {left ? `add to ${left.name}` : "skip"}</li>
-            <li><b className="text-foreground">Double-tap</b> — {right ? `add to ${right.name}` : "same as swipe right"} · <b className="text-foreground">tap</b> — play / pause</li>
+            <li><b className="text-foreground">Swipe right</b> (→) or <b className="text-foreground">double-tap</b> — add to {target?.name ?? "your playlist"}</li>
+            <li><b className="text-foreground">Swipe left</b> (←) — skip</li>
+            <li><b className="text-foreground">Tap</b> — play / pause</li>
           </ul>
           <button
             type="button"
@@ -717,6 +556,25 @@ function Hint() {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/** No feed playlist yet: the one thing to decide before swiping. */
+function PickTarget() {
+  const open = useUiStore((s) => s.setSetupOpen);
+  return (
+    <div className="absolute inset-x-4 bottom-6 z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-popover/90 p-4 text-center text-sm shadow-2xl backdrop-blur md:bottom-10">
+      <p className="text-muted-foreground">
+        Pick the playlist that swiping right adds to.
+      </p>
+      <button
+        type="button"
+        onClick={() => open(true, "feed")}
+        className="mt-3 h-10 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground"
+      >
+        Choose feed playlist
+      </button>
+    </div>
   );
 }
 
