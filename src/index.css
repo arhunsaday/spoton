@@ -105,3 +105,19 @@
     user-select: none;
   }
 }
+
+/* ---- vinyl (Settings → Vinyl) ---- */
+@keyframes vinyl-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vinyl-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(40%); }
+}
+/* 33⅓ rpm */
+.vinyl-spin { animation: vinyl-spin 1.8s linear infinite; }
+.vinyl-out { animation: vinyl-out 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-spin { animation: none; }
+  .vinyl-out { animation-duration: 1ms; animation-delay: 0s; }
+}

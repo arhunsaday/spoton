@@ -17,6 +17,7 @@ import {
   Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Vinyl } from "@/components/Vinyl";
 import { coverUrl } from "@/lib/cover";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -434,11 +435,23 @@ function CurrentCard({
 function Card({ track, children }: { track: SpotifyTrack; children?: React.ReactNode }) {
   const cover = coverUrl(track, 600);
   const inFeed = useFeedStore((s) => !!s.ids?.has(track.id));
+  const vinyl = useLibraryStore((s) => !!s.settings.vinyl);
+  // only the card on screen spins — its neighbours sit still
+  const playing = usePlayerStore((s) => s.playing);
+  const onScreen = useSessionStore((s) => s.tracks[s.index]?.id === track.id);
+  const spinning = playing && onScreen;
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center px-6 pb-10 pt-8">
-      <div className="relative aspect-square w-[min(100%,calc(100dvh-17rem),560px)] min-w-[180px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]">
-        {cover ? (
+      <div
+        className={cn(
+          "relative aspect-square w-[min(100%,calc(100dvh-17rem),560px)] min-w-[180px]",
+          !vinyl && "overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]",
+        )}
+      >
+        {vinyl ? (
+          <Vinyl cover={cover} spinning={spinning} />
+        ) : cover ? (
           <img src={cover} alt="" draggable={false} className="h-full w-full object-cover drag-none" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-secondary">

@@ -8,6 +8,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { coverUrl } from "@/lib/cover";
 import { Spectrum } from "./Spectrum";
 import { TiltCover } from "./TiltCover";
+import { Vinyl } from "@/components/Vinyl";
 
 /** Horizontal travel (px, velocity-weighted) that counts as a swipe. */
 const SWIPE_PX = 70;
@@ -26,6 +27,7 @@ export function FocusView() {
   const next = useSessionStore((s) => s.next);
   const prev = useSessionStore((s) => s.prev);
   const visualizer = useLibraryStore((s) => s.settings.visualizer !== false);
+  const vinyl = useLibraryStore((s) => !!s.settings.vinyl);
 
   const playing = usePlayerStore((s) => s.playing);
   const toggle = usePlayerStore((s) => s.toggle);
@@ -121,43 +123,59 @@ export function FocusView() {
                   right edge, so it can never be taller than the cover or move
                   anything when the album name changes */}
               <div className="relative aspect-square w-[calc(100%-4rem)] max-w-[min(56vh,560px)]">
-              <TiltCover
-                enabled={visualizer && !coarse}
-                className={cn(
-                  "h-full w-full transition-[filter,opacity] duration-300",
-                  noPreview && "opacity-70 grayscale",
-                )}
-              >
-                {/* the cover is the play button — the bar below has the rest */}
+              {vinyl ? (
                 <button
                   type="button"
                   onClick={toggle}
                   disabled={noPreview}
                   aria-label={playing ? "Pause" : "Play"}
                   title={noPreview ? "No preview available" : playing ? "Pause (Space)" : "Play (Space)"}
-                  className="group/cover relative block h-full w-full cursor-pointer disabled:cursor-default"
+                  className={cn(
+                    "block h-full w-full cursor-pointer transition-[filter,opacity] duration-300 disabled:cursor-default",
+                    noPreview && "opacity-70 grayscale",
+                  )}
                 >
-                {cover ? (
-                  <img
-                    src={cover}
-                    alt=""
-                    className="h-full w-full object-cover drag-none"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-secondary">
-                    <Music2 className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                )}
+                  <Vinyl cover={cover} spinning={playing} />
                 </button>
-              </TiltCover>
+              ) : (
+                <TiltCover
+                  enabled={visualizer && !coarse}
+                  className={cn(
+                    "h-full w-full transition-[filter,opacity] duration-300",
+                    noPreview && "opacity-70 grayscale",
+                  )}
+                >
+                  {/* the cover is the play button — the bar below has the rest */}
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    disabled={noPreview}
+                    aria-label={playing ? "Pause" : "Play"}
+                    title={noPreview ? "No preview available" : playing ? "Pause (Space)" : "Play (Space)"}
+                    className="group/cover relative block h-full w-full cursor-pointer disabled:cursor-default"
+                  >
+                  {cover ? (
+                    <img
+                      src={cover}
+                      alt=""
+                      className="h-full w-full object-cover drag-none"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-secondary">
+                      <Music2 className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                  )}
+                  </button>
+                </TiltCover>
+              )}
               {/* album name set like a book spine, reading top to bottom */}
-              <p
+              {!vinyl && <p
                 title={track.album.name}
                 className="absolute inset-y-2 left-full ml-3 w-5 truncate tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl]"
               >
                 {track.album.name}
-              </p>
+              </p>}
               </div>
             </div>
 

@@ -20,6 +20,8 @@ export interface Settings {
   fullTracks: boolean;
   /** spectrum behind the focus view + cover tilt. Absent on old saves = on. */
   visualizer?: boolean;
+  /** show the cover as a sleeve with a record that spins while playing. */
+  vinyl?: boolean;
 }
 
 /** Queued (not-yet-applied) batch changes per target playlist. Persisted. */

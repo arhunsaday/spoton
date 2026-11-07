@@ -514,6 +514,11 @@ function SettingsSection() {
       hint: "Spectrum behind the track and a 3D tilt on the cover.",
       defaultOn: true,
     },
+    {
+      key: "vinyl",
+      label: "Vinyl",
+      hint: "Show a record sliding out of the sleeve, spinning while it plays.",
+    },
   ];
 
   return (
