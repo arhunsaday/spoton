@@ -406,7 +406,9 @@ function CurrentCard({
   const left = useTransform(x, [-120, -20], [1, 0]);
   const opacity = useTransform(enter, [0.9, 1], [0, 1]);
   const target = feedTarget();
-  const paused = usePlayerStore((s) => !s.playing && !s.buffering && s.previewVia !== "none");
+  const vinyl = useLibraryStore((s) => !!s.settings.vinyl);
+  // vinyl: the stopped record already says "paused" — no button over the art
+  const paused = usePlayerStore((s) => !s.playing && !s.buffering && s.previewVia !== "none") && !vinyl;
 
   return (
     <motion.div style={{ x, rotate, scale: enter, opacity }} className="h-full w-full origin-bottom">
