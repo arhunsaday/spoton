@@ -117,6 +117,7 @@
 }
 .vinyl-spin { animation: vinyl-spin 5s linear infinite; }
 .vinyl-out { animation: vinyl-out 1s ease-out 0.6s both; }
+.vinyl-is-out { transform: translateX(52.6%); }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-spin { animation: none; }
   .vinyl-out { animation-duration: 1ms; animation-delay: 0s; }

@@ -5,6 +5,11 @@
 
 const cache = new Map<string, string>();
 
+/** Already-extracted colour for this image, if any (no work, no await). */
+export function peekDominantColor(imageUrl?: string): string | null {
+  return (imageUrl && cache.get(imageUrl)) || null;
+}
+
 export async function dominantColor(imageUrl: string): Promise<string | null> {
   if (!imageUrl) return null;
   const hit = cache.get(imageUrl);

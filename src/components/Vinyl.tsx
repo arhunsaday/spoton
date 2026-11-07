@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Music2 } from "lucide-react";
-import { dominantColor } from "@/lib/color";
+import { dominantColor, peekDominantColor } from "@/lib/color";
 import { cn } from "@/lib/utils";
+
+/** The record slides out of the sleeve once per app session; after that every
+ *  vinyl (next track, other feed cards) is already out, so nothing pops. */
+let pulledOut = false;
 
 /** Fallback label tint while the cover's colour is still being read. */
 const NEUTRAL = "150, 150, 150";
@@ -40,13 +44,17 @@ export function Vinyl({
   children?: React.ReactNode;
 }) {
   const tint = useDominant(cover);
+  const [slide] = useState(() => !pulledOut);
+  useEffect(() => {
+    pulledOut = true;
+  }, []);
 
   return (
     <div className={cn("relative aspect-[3/2] w-full", className)}>
       <div className="absolute inset-y-0 left-0 aspect-square">
         {/* record: slides out (outer) and spins (inner) on separate elements
             so the two transforms never fight */}
-        <div className="vinyl-out absolute inset-[2.5%] z-0">
+        <div className={cn("absolute inset-[2.5%] z-0", slide ? "vinyl-out" : "vinyl-is-out")}>
           <div
             className="vinyl-spin relative h-full w-full rounded-full shadow-[0_0_20px_4px_rgba(0,0,0,0.6)]"
             style={{ animationPlayState: spinning ? "running" : "paused", background: DISC }}
@@ -114,11 +122,17 @@ export function Vinyl({
 }
 
 function useDominant(url?: string) {
-  const [tint, setTint] = useState(NEUTRAL);
+  // start from the cached colour so a new card's label doesn't flash grey
+  const [tint, setTint] = useState(() => peekDominantColor(url) ?? NEUTRAL);
   useEffect(() => {
     let live = true;
     if (!url) {
       setTint(NEUTRAL);
+      return;
+    }
+    const hit = peekDominantColor(url);
+    if (hit) {
+      setTint(hit);
       return;
     }
     void dominantColor(url).then((c) => {

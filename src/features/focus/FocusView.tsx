@@ -101,7 +101,9 @@ export function FocusView() {
       <div className="relative z-10 flex w-full max-w-3xl flex-col items-center px-6 pb-[8vh]">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
-            key={track.id}
+            // vinyl: one persistent turntable — swap the record, don't
+            // remount it (it would slide back in and out on every track)
+            key={vinyl ? "vinyl" : track.id}
             custom={dir}
             initial={{ opacity: 0, x: dir * 56 }}
             animate={{ opacity: 1, x: 0 }}
@@ -186,6 +188,13 @@ export function FocusView() {
               </div>
             </div>
 
+            <motion.div
+              key={track.id}
+              initial={vinyl ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="flex w-full flex-col items-center"
+            >
             <h1 className="mt-6 line-clamp-2 text-balance text-center text-2xl font-bold tracking-tight hover:text-white/60 md:text-3xl xl:text-4xl">
               <a
                 href={`https://open.spotify.com/track/${track.id}`}
@@ -208,6 +217,7 @@ export function FocusView() {
                 {track.artists.map((a) => a.name).join(", ")}
               </a>
             </p>
+            </motion.div>
           </motion.div>
         </AnimatePresence>
 
