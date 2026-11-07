@@ -138,7 +138,7 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
   const enter = useMotionValue(1);
 
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
-  const [flash, setFlash] = useState<{ id: number; text: string; ok: boolean } | null>(null);
+  const [flash, setFlash] = useState<{ id: number; text: string } | null>(null);
 
   // the confirmation lingers a moment, then leaves
   useEffect(() => {
@@ -191,9 +191,10 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
         });
         cardX.jump(0);
         void animate(enter, 1, SNAP);
-        if (result === "added") setFlash({ id: Date.now(), text: target!.name, ok: true });
-        else if (result === "already")
-          setFlash({ id: Date.now(), text: `Already in ${target!.name}`, ok: false });
+        // a plain add needs no confirmation (the card flying right is it);
+        // only say something when the swipe did nothing
+        if (result === "already")
+          setFlash({ id: Date.now(), text: `Already in ${target!.name}` });
         busy.current = false;
       });
     },
@@ -375,8 +376,7 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "pointer-events-none absolute left-1/2 top-6 z-30 flex max-w-[80%] -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur",
-              flash.ok ? "bg-success/90 text-success-foreground" : "bg-secondary/90 text-foreground",
+              "pointer-events-none absolute left-1/2 top-6 z-30 flex max-w-[80%] -translate-x-1/2 items-center gap-2 rounded-full bg-secondary/90 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur",
             )}
           >
             <Check className="h-4 w-4 shrink-0" />
