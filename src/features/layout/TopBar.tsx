@@ -96,7 +96,7 @@ export function TopBar() {
   const pct = total > 0 ? ((index + 1) / total) * 100 : 0;
 
   return (
-    <header className="flex h-14 items-center gap-2 border-b border-border px-3 sm:gap-4 sm:px-4">
+    <header className="box-content flex h-14 shrink-0 items-center pt-[env(safe-area-inset-top)] gap-2 border-b border-border px-3 sm:gap-4 sm:px-4">
       {/* <img
         src="/favicon.svg"
         alt="Spoton"

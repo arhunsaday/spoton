@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { toast } from "sonner";
-import { addTracksToTarget, getTargetTrackIds, removeTracksFromTarget } from "@/api/spotify";
+import { addTracksToTarget, getTargetTrackIds } from "@/api/spotify";
 import { QuotaError } from "@/api/client";
 import { LIKED_SOURCE_ID, useLibraryStore } from "@/store/useLibraryStore";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -60,20 +60,8 @@ async function addToFeed(track: SpotifyTrack, target: { id: string; name: string
   feed._mark(track.id, true);
   try {
     await addTracksToTarget(target.id, [track.id]);
-    toast.success(`Added to ${target.name}`, {
-      id: "feed-add",
-      description: track.name,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          useFeedStore.getState()._mark(track.id, false);
-          void removeTracksFromTarget(target.id, [track.id]).catch(() => {
-            useFeedStore.getState()._mark(track.id, true);
-            toast.error("Couldn't undo");
-          });
-        },
-      },
-    });
+    // no toast: the card's own swipe feedback is enough, and a toast per
+    // swipe stacks up fast in the feed. Failures still surface below.
   } catch (e) {
     useFeedStore.getState()._mark(track.id, false);
     toast.error(

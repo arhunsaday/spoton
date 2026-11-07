@@ -91,7 +91,7 @@ function Shell() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         <TopBar />
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1">
@@ -106,6 +106,8 @@ function Shell() {
         </div>
         {view !== "feed" && <TargetStrip />}
         {view !== "feed" && <PlayerBar />}
+        {/* feed has no bottom bar: keep the deck clear of the home indicator */}
+        {view === "feed" && <div aria-hidden className="h-[env(safe-area-inset-bottom)] shrink-0" />}
       </div>
       <SetupDialog />
       <HelpDialog />

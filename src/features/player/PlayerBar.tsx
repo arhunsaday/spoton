@@ -141,7 +141,7 @@ export function PlayerBar() {
   ];
 
   return (
-    <div className="relative flex h-20 items-center gap-3 border-t border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
+    <div className="relative box-content flex h-20 shrink-0 items-center pb-[env(safe-area-inset-bottom)] gap-3 border-t border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
       {/* phones: no room for a scrubber — a hairline shows progress instead */}
       <div
         aria-hidden
