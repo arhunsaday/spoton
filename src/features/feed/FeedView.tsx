@@ -452,10 +452,10 @@ function Card({ track, children }: { track: SpotifyTrack; children?: React.React
   const check = inFeed && (
     <span
       title="Already in your feed playlist"
-      // frosted, not a solid green blob: it's a hint, not an alert
-      className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-black/30 text-success/90 shadow-sm backdrop-blur-md"
+      // just the tick: a quiet hint, readable on any cover via its shadow
+      className="pointer-events-none absolute right-3 top-3 z-10 text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
     >
-      <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+      <Check className="h-5 w-5" strokeWidth={2.5} />
     </span>
   );
 
