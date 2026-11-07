@@ -98,7 +98,7 @@ export function TopBar() {
   return (
     <header className="box-content flex h-14 shrink-0 items-center pt-[env(safe-area-inset-top)] gap-2 border-b border-border px-3 sm:gap-4 sm:px-4">
       {/* <img
-        src="/favicon.svg"
+        src="/pwa-192x192.png"
         alt="Spoton"
         className="h-7 w-7 shrink-0 rounded-md drag-none"
         draggable={false}

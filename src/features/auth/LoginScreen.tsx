@@ -38,7 +38,7 @@ export function LoginScreen() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <img
-            src="/favicon.svg"
+            src="/pwa-192x192.png"
             alt="Spoton"
             className="mb-2 h-12 w-12 rounded-xl drag-none"
             draggable={false}

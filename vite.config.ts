@@ -13,7 +13,7 @@ export default defineConfig({
     VitePWA({
       // "prompt": a new deploy never reloads you mid-triage — a toast asks.
       registerType: "prompt",
-      includeAssets: ["favicon.svg", "favicon-32x32.png", "apple-touch-icon.png"],
+      includeAssets: ["favicon.png", "favicon-32x32.png", "apple-touch-icon.png"],
       manifest: {
         id: "/",
         name: "Spoton — fast playlist triage",
