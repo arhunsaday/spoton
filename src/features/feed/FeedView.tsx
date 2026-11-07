@@ -339,11 +339,10 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
             style={{ transform: `translateY(${o * 100}%)` }}
             aria-hidden={o !== 0}
           >
-            {o === 0 ? (
-              <CurrentCard track={t} x={cardX} enter={enter} />
-            ) : (
-              <Card track={t} />
-            )}
+            {/* same component in every slot: a card moving into the centre
+                must keep its DOM (images, vinyl spin) — swapping component
+                types would remount it and flash */}
+            <DeckCard track={t} active={o === 0} x={cardX} enter={enter} />
           </div>
         ))}
       </div>
@@ -391,16 +390,23 @@ function Deck({ tracks, index }: { tracks: SpotifyTrack[]; index: number }) {
 
 /* --------------------------------------------------------------- the cards */
 
-/** The interactive top card: follows the finger, tilts, and stamps. */
-function CurrentCard({
+/** A deck card. The active (centre) one follows the finger, tilts and
+ *  stamps; the others sit still on their own resting motion values. */
+function DeckCard({
   track,
-  x,
-  enter,
+  active,
+  x: sharedX,
+  enter: sharedEnter,
 }: {
   track: SpotifyTrack;
+  active: boolean;
   x: MotionValue<number>;
   enter: MotionValue<number>;
 }) {
+  const restX = useMotionValue(0);
+  const restEnter = useMotionValue(1);
+  const x = active ? sharedX : restX;
+  const enter = active ? sharedEnter : restEnter;
   const rotate = useTransform(x, [-400, 0, 400], [-14, 0, 14]);
   const right = useTransform(x, [20, 120], [0, 1]);
   const left = useTransform(x, [-120, -20], [1, 0]);
@@ -408,13 +414,14 @@ function CurrentCard({
   const target = feedTarget();
   const vinyl = useLibraryStore((s) => !!s.settings.vinyl);
   // vinyl: the stopped record already says "paused" — no button over the art
-  const paused = usePlayerStore((s) => !s.playing && !s.buffering && s.previewVia !== "none") && !vinyl;
+  const paused =
+    usePlayerStore((s) => !s.playing && !s.buffering && s.previewVia !== "none") && !vinyl && active;
 
   return (
     <motion.div style={{ x, rotate, scale: enter, opacity }} className="h-full w-full origin-bottom">
       <Card track={track}>
-        <Stamp side="right" style={right} label={target?.name ?? "Pick a playlist"} />
-        <Stamp side="left" style={left} label="Skip" />
+        {active && <Stamp side="right" style={right} label={target?.name ?? "Pick a playlist"} />}
+        {active && <Stamp side="left" style={left} label="Skip" />}
         <AnimatePresence>
           {paused && (
             <motion.span
