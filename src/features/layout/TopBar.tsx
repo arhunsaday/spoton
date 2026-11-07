@@ -25,6 +25,7 @@ import { countPending, useSessionStore } from "@/store/useSessionStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUiStore } from "@/store/useUiStore";
 import { cn } from "@/lib/utils";
+import { TrackJump } from "./TrackJump";
 
 /** Focus (one track, keyboard-first) ↔ Feed (swipe deck). */
 function ViewToggle() {
@@ -44,7 +45,7 @@ function ViewToggle() {
           aria-checked={view === id}
           onClick={() => setView(id)}
           className={cn(
-            "flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+            "flex h-7 items-center gap-1.5 rounded-md px-2 text-sm sm:px-2.5 font-medium text-muted-foreground transition-colors hover:text-foreground",
             view === id && "bg-background text-foreground shadow-sm",
           )}
         >
@@ -95,9 +96,9 @@ export function TopBar() {
   const pct = total > 0 ? ((index + 1) / total) * 100 : 0;
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b border-border px-4">
+    <header className="flex h-14 items-center gap-2 border-b border-border px-3 sm:gap-4 sm:px-4">
       {/* <img
-        src="/icon.png"
+        src="/favicon.svg"
         alt="Spoton"
         className="h-7 w-7 shrink-0 rounded-md drag-none"
         draggable={false}
@@ -129,7 +130,7 @@ export function TopBar() {
             Source
           </div>
           <div className="flex items-center gap-1">
-            <span className="max-w-[32vw] truncate text-sm font-semibold">
+            <span className="max-w-[24vw] truncate sm:max-w-[32vw] text-sm font-semibold">
               {sourceName}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground opacity-50 transition-opacity group-hover:opacity-100" />
@@ -137,12 +138,12 @@ export function TopBar() {
         </div>
       </button>
 
-      {/* session progress */}
-      <div className="hidden flex-1 items-center gap-3 md:flex">
-        <Progress value={pct} className="h-1.5 max-w-xs" />
-        <span className="whitespace-nowrap text-xs text-muted-foreground tabnum">
-          {total > 0 ? `${index + 1} / ${total}` : "—"}
-        </span>
+      {/* session progress — phones keep the jump-to counter, drop the bar */}
+      <div className="flex items-center gap-3 md:flex-1">
+        <Progress value={pct} className="hidden h-1.5 max-w-xs md:block" />
+        <TrackJump />
+      </div>
+      <div className="hidden items-center gap-3 md:flex md:flex-1">
         {syncing && (
           <Tooltip>
             <TooltipTrigger asChild>

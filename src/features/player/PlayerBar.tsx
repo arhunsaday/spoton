@@ -48,11 +48,8 @@ import type { SdkStatus } from "@/lib/spotify-sdk";
 
 export function PlayerBar() {
   const track = useSessionStore((s) => s.tracks[s.index] ?? null);
-  const index = useSessionStore((s) => s.index);
-  const total = useSessionStore((s) => s.tracks.length);
   const next = useSessionStore((s) => s.next);
   const prev = useSessionStore((s) => s.prev);
-  const goTo = useSessionStore((s) => s.goTo);
 
   const {
     playing,
@@ -255,36 +252,10 @@ export function PlayerBar() {
         </span>
       </div>
 
-      {/* right cluster: jump · volume · fullscreen */}
+      {/* right cluster: source · device · volume · fullscreen */}
       <div className="ml-auto hidden items-center gap-3 sm:flex">
         <SourceToggle full={fullTracks} status={sdkStatus} error={sdkError} />
         <DevicePicker track={track} />
-
-        {total > 0 && (
-          <div className="hidden items-center gap-1 text-xs text-muted-foreground md:flex">
-            <input
-              key={index}
-              type="number"
-              min={1}
-              max={total}
-              defaultValue={index + 1}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const n = parseInt((e.target as HTMLInputElement).value, 10);
-                  if (!Number.isNaN(n)) goTo(n - 1);
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
-              onBlur={(e) => {
-                const n = parseInt(e.target.value, 10);
-                if (!Number.isNaN(n)) goTo(n - 1);
-              }}
-              className="h-7 w-11 rounded-md border border-border bg-background/50 px-1 text-center tabnum text-foreground outline-none focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-              aria-label="Jump to track number"
-            />
-            <span className="tabnum">/ {total}</span>
-          </div>
-        )}
 
         <div className="hidden items-center gap-2 lg:flex lg:w-28">
           <Button

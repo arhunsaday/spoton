@@ -3,7 +3,19 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { Toaster } from "@/components/ui/sonner";
+import { registerSW } from "virtual:pwa-register";
+import { toast } from "sonner";
 import "./index.css";
+
+// Installed-app updates: never reload mid-session on our own — offer it.
+const updateSW = registerSW({
+  onNeedRefresh() {
+    toast("A new version of Spoton is ready", {
+      duration: Infinity,
+      action: { label: "Reload", onClick: () => void updateSW(true) },
+    });
+  },
+});
 
 if (import.meta.env.DEV) {
   // handy for debugging in the console: window.__spoton.session.getState()
