@@ -110,13 +110,13 @@
 @keyframes vinyl-spin {
   to { transform: rotate(360deg); }
 }
+/* half out of the sleeve: 50% of the sleeve = 50/95 of the record */
 @keyframes vinyl-out {
   from { transform: translateX(0); }
-  to { transform: translateX(40%); }
+  to { transform: translateX(52.6%); }
 }
-/* 33⅓ rpm */
-.vinyl-spin { animation: vinyl-spin 1.8s linear infinite; }
-.vinyl-out { animation: vinyl-out 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+.vinyl-spin { animation: vinyl-spin 5s linear infinite; }
+.vinyl-out { animation: vinyl-out 1s ease-out 0.6s both; }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-spin { animation: none; }
   .vinyl-out { animation-duration: 1ms; animation-delay: 0s; }

@@ -122,7 +122,14 @@ export function FocusView() {
               {/* the box is the cover's size; the album spine hangs off its
                   right edge, so it can never be taller than the cover or move
                   anything when the album name changes */}
-              <div className="relative aspect-square w-[calc(100%-4rem)] max-w-[min(56vh,560px)]">
+              <div
+                className={cn(
+                  "relative",
+                  vinyl
+                    ? "aspect-[3/2] w-full max-w-[min(84vh,840px)]"
+                    : "aspect-square w-[calc(100%-4rem)] max-w-[min(56vh,560px)]",
+                )}
+              >
               {vinyl ? (
                 <button
                   type="button"

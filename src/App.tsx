@@ -106,8 +106,6 @@ function Shell() {
         </div>
         {view !== "feed" && <TargetStrip />}
         {view !== "feed" && <PlayerBar />}
-        {/* feed has no bottom bar: keep the deck clear of the home indicator */}
-        {view === "feed" && <div aria-hidden className="h-[env(safe-area-inset-bottom)] shrink-0" />}
       </div>
       <SetupDialog />
       <HelpDialog />

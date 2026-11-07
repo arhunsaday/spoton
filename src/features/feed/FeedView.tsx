@@ -107,7 +107,7 @@ export function FeedView() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <Backdrop cover={cover} />
+      <Backdrop />
       {visualizer && <Spectrum coverUrl={cover} className="h-[14%] max-h-32" />}
       <Deck tracks={tracks} index={index} />
       {feedTargetId ? <Hint /> : <PickTarget />}
@@ -440,34 +440,37 @@ function Card({ track, children }: { track: SpotifyTrack; children?: React.React
   const playing = usePlayerStore((s) => s.playing);
   const onScreen = useSessionStore((s) => s.tracks[s.index]?.id === track.id);
   const spinning = playing && onScreen;
+  const check = inFeed && (
+    <span
+      title="Already in your feed playlist"
+      className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-success text-success-foreground shadow-lg"
+    >
+      <Check className="h-4 w-4" strokeWidth={3} />
+    </span>
+  );
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center px-6 pb-10 pt-8">
-      <div
-        className={cn(
-          "relative aspect-square w-[min(100%,calc(100dvh-17rem),560px)] min-w-[180px]",
-          !vinyl && "overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]",
-        )}
-      >
-        {vinyl ? (
-          <Vinyl cover={cover} spinning={spinning} />
-        ) : cover ? (
-          <img src={cover} alt="" draggable={false} className="h-full w-full object-cover drag-none" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-secondary">
-            <Music2 className="h-12 w-12 text-muted-foreground" />
-          </div>
-        )}
-        {inFeed && (
-          <span
-            title="Already in your feed playlist"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-success text-success-foreground shadow-lg"
-          >
-            <Check className="h-4 w-4" strokeWidth={3} />
-          </span>
-        )}
-        {children}
-      </div>
+      {vinyl ? (
+        <div className="relative w-[min(100%,calc((100dvh-17rem)*1.5),840px)] min-w-[270px]">
+          <Vinyl cover={cover} spinning={spinning}>
+            {check}
+            {children}
+          </Vinyl>
+        </div>
+      ) : (
+        <div className="relative aspect-square w-[min(100%,calc(100dvh-17rem),560px)] min-w-[180px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.9)]">
+          {cover ? (
+            <img src={cover} alt="" draggable={false} className="h-full w-full object-cover drag-none" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-secondary">
+              <Music2 className="h-12 w-12 text-muted-foreground" />
+            </div>
+          )}
+          {check}
+          {children}
+        </div>
+      )}
 
       <div className="mt-6 w-full max-w-xl text-center">
         <h2 className="line-clamp-2 text-balance text-2xl font-bold tracking-tight md:text-3xl">
@@ -516,26 +519,20 @@ function Stamp({
 
 /* ------------------------------------------------------------- the chrome */
 
-function Backdrop({ cover }: { cover: string }) {
+/** Fixed ambient glow. Deliberately not tied to the cover: the deck moves
+ *  fast and a background that re-tints on every swipe is distracting. */
+function Backdrop() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <AnimatePresence>
-        {cover && (
-          <motion.img
-            key={cover}
-            src={cover}
-            aria-hidden
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7 }}
-            className="absolute left-1/2 top-1/2 h-[150%] w-[150%] -translate-x-1/2 -translate-y-1/2 object-cover blur-[100px] saturate-[1.4]"
-          />
-        )}
-      </AnimatePresence>
-      <div className="absolute inset-0 bg-background/70" />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background" />
-    </div>
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background:
+          "radial-gradient(70% 55% at 15% 0%, hsl(var(--primary) / 0.16), transparent 70%)," +
+          "radial-gradient(60% 50% at 90% 15%, hsl(292 70% 55% / 0.1), transparent 70%)," +
+          "linear-gradient(to bottom, transparent 40%, hsl(var(--background)))",
+      }}
+    />
   );
 }
 
@@ -551,7 +548,7 @@ function Hint() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="absolute inset-x-4 bottom-6 z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-popover/90 p-4 text-sm shadow-2xl backdrop-blur md:bottom-10"
+          className="absolute inset-x-4 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-popover/90 p-4 text-sm shadow-2xl backdrop-blur md:bottom-10"
         >
           <ul className="space-y-1.5 text-muted-foreground">
             <li><b className="text-foreground">Swipe up / down</b> (↑ ↓, wheel) — next / previous</li>
@@ -576,7 +573,7 @@ function Hint() {
 function PickTarget() {
   const open = useUiStore((s) => s.setSetupOpen);
   return (
-    <div className="absolute inset-x-4 bottom-6 z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-popover/90 p-4 text-center text-sm shadow-2xl backdrop-blur md:bottom-10">
+    <div className="absolute inset-x-4 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-popover/90 p-4 text-center text-sm shadow-2xl backdrop-blur md:bottom-10">
       <p className="text-muted-foreground">
         Pick the playlist that swiping right adds to.
       </p>

@@ -4,49 +4,65 @@ import { dominantColor } from "@/lib/color";
 import { cn } from "@/lib/utils";
 
 /** Fallback label tint while the cover's colour is still being read. */
-const NEUTRAL = "120, 120, 132";
+const NEUTRAL = "150, 150, 150";
+
+/** Fine film grain (stands in for the photo textures of a real sleeve/disc). */
+const GRAIN =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+/** The record itself: grooves, glossy highlights that turn with it (like a
+ *  photo of a real LP spinning), a few track gaps, and the printed label. */
+const DISC =
+  // two glossy highlight wedges
+  "conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.16) 28deg, rgba(255,255,255,0) 62deg, rgba(255,255,255,0) 180deg, rgba(255,255,255,0.12) 212deg, rgba(255,255,255,0) 246deg, rgba(255,255,255,0) 360deg)," +
+  // track gaps + lead-in / run-out bands
+  "radial-gradient(circle, transparent 0 35%, rgba(255,255,255,0.05) 35.5% 37%, transparent 37.5% 52%, rgba(255,255,255,0.06) 52.4%, transparent 52.9% 63%, rgba(255,255,255,0.06) 63.4%, transparent 63.9% 78%, rgba(255,255,255,0.06) 78.4%, transparent 78.9% 95%, rgba(255,255,255,0.1) 95.5% 97%, #050505 97.5%)," +
+  // the grooves
+  "repeating-radial-gradient(circle, #0c0c0c 0 0.6px, #1d1d1d 1px, #0a0a0a 1.6px)";
 
 /**
- * An LP half out of its sleeve. Fills a square box: the sleeve is the album
- * cover, the record slides out to the right once per track and turns at
- * 33⅓ rpm while `spinning`. Pausing freezes it where it is rather than
- * snapping back. The label is tinted with the cover's dominant colour and
- * carries the art, so the rotation is actually visible.
+ * An LP pulled half out of its sleeve, after the classic CSS "album + vinyl"
+ * look. Fills a 3:2 box: the sleeve (album cover) is the left two-thirds, the
+ * record slides out to the right once per track and turns while `spinning`;
+ * pausing freezes it where it is. The centre print is the cover art, ringed
+ * with the cover's dominant colour. `children` render over the sleeve
+ * (badges, swipe stamps…).
  */
 export function Vinyl({
   cover,
   spinning,
   className,
+  children,
 }: {
   cover?: string;
   spinning: boolean;
   className?: string;
+  children?: React.ReactNode;
 }) {
   const tint = useDominant(cover);
 
   return (
-    <div className={cn("relative h-full w-full", className)}>
-      {/* sleeve + record, centred as a group inside the square */}
-      <div className="absolute left-[3%] top-[14%] aspect-square w-[72%]">
-        {/* the record: slides out (outer) and spins (inner) separately so the
-            two transforms never fight */}
+    <div className={cn("relative aspect-[3/2] w-full", className)}>
+      <div className="absolute inset-y-0 left-0 aspect-square">
+        {/* record: slides out (outer) and spins (inner) on separate elements
+            so the two transforms never fight */}
         <div className="vinyl-out absolute inset-[2.5%] z-0">
           <div
-            className="vinyl-spin relative h-full w-full rounded-full shadow-[0_10px_40px_-6px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.04)]"
-            style={{
-              animationPlayState: spinning ? "running" : "paused",
-              background:
-                // grooves over a near-black disc, with the dead wax near the label
-                "radial-gradient(circle, transparent 0 33%, rgba(0,0,0,0.55) 33.5% 36%, transparent 36.5% 47%, rgba(255,255,255,0.05) 47.3%, transparent 47.8% 70%, rgba(255,255,255,0.05) 70.3%, transparent 70.8% 96.5%, rgba(255,255,255,0.08) 97%, transparent 98%)," +
-                "repeating-radial-gradient(circle, #121212 0 1px, #1b1b1b 1.5px, #0f0f0f 2.5px)",
-            }}
+            className="vinyl-spin relative h-full w-full rounded-full shadow-[0_0_20px_4px_rgba(0,0,0,0.6)]"
+            style={{ animationPlayState: spinning ? "running" : "paused", background: DISC }}
           >
-            {/* label */}
+            {/* surface texture */}
+            <div
+              aria-hidden
+              className="absolute inset-[2.5%] rounded-full opacity-[0.12] mix-blend-screen"
+              style={{ backgroundImage: GRAIN }}
+            />
+            {/* print (label) */}
             <div
               className="absolute inset-[33%] overflow-hidden rounded-full"
               style={{
-                background: `radial-gradient(circle, rgb(${tint}) 0 64%, rgba(0,0,0,0.25) 64.5% 66%, rgb(${tint}) 66.5% 100%)`,
-                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), inset 0 0 12px rgba(0,0,0,0.35)",
+                background: `rgb(${tint})`,
+                boxShadow: `inset 0 0 0 5px rgba(${tint}, 0.85), inset 0 0 0 6px rgba(0,0,0,0.25)`,
               }}
             >
               {cover && (
@@ -54,30 +70,16 @@ export function Vinyl({
                   src={cover}
                   alt=""
                   draggable={false}
-                  className="absolute inset-[18%] h-[64%] w-[64%] rounded-full object-cover opacity-95 drag-none"
+                  className="absolute inset-[9%] h-[82%] w-[82%] rounded-full object-cover drag-none"
                 />
               )}
-              {/* a little off-centre mark, like printed label text */}
-              <span className="absolute left-1/2 top-[6%] h-[5%] w-[22%] -translate-x-1/2 rounded-full bg-white/35" />
-              {/* spindle hole */}
-              <span className="absolute left-1/2 top-1/2 h-[7%] w-[7%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0b0b0b] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]" />
+              <span className="absolute left-1/2 top-1/2 h-[8%] w-[8%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#111] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]" />
             </div>
           </div>
-          {/* light doesn't turn with the record: the sheen stays put */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full mix-blend-screen"
-            style={{
-              background:
-                "conic-gradient(from 20deg, transparent 0 6%, rgba(255,255,255,0.13) 11%, transparent 18% 50%, rgba(255,255,255,0.1) 61%, transparent 68% 100%)",
-              WebkitMaskImage: "radial-gradient(circle, transparent 0 34%, black 35%)",
-              maskImage: "radial-gradient(circle, transparent 0 34%, black 35%)",
-            }}
-          />
         </div>
 
         {/* sleeve */}
-        <div className="absolute inset-0 z-10 overflow-hidden rounded-[4px] bg-secondary shadow-[6px_0_24px_0_rgba(0,0,0,0.6),inset_0_0_10px_4px_rgba(255,255,255,0.12),inset_0_0_3px_1px_rgba(0,0,0,0.25)]">
+        <div className="absolute inset-0 z-10 overflow-hidden rounded-[4px] bg-secondary shadow-[5px_0_20px_0_rgba(0,0,0,0.6)]">
           {cover ? (
             <img src={cover} alt="" draggable={false} className="h-full w-full object-cover drag-none" />
           ) : (
@@ -85,19 +87,26 @@ export function Vinyl({
               <Music2 className="h-10 w-10 text-muted-foreground" />
             </div>
           )}
-          {/* printed-card sheen + worn edges */}
+          {/* worn card: soft light falloff + grain, screened like the photo
+              textures in the original */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 mix-blend-screen"
+            className="pointer-events-none absolute inset-0 opacity-50 mix-blend-screen"
             style={{
               background:
-                "linear-gradient(115deg, rgba(255,255,255,0.14) 0%, transparent 28%, transparent 70%, rgba(255,255,255,0.06) 100%)",
+                "radial-gradient(120% 90% at 15% 10%, rgba(255,255,255,0.22), transparent 55%), linear-gradient(100deg, transparent 70%, rgba(255,255,255,0.08))",
             }}
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[4px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_-8px_0_14px_-8px_rgba(0,0,0,0.6)]"
+            className="pointer-events-none absolute inset-0 opacity-20 mix-blend-screen"
+            style={{ backgroundImage: GRAIN }}
           />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[4px] shadow-[inset_0_0_10px_5px_rgba(255,255,255,0.2),inset_0_0_4px_2px_rgba(0,0,0,0.2)]"
+          />
+          {children}
         </div>
       </div>
     </div>
