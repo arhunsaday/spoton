@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Music2 } from "lucide-react";
+import { Check, Music2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -144,7 +144,9 @@ export function FocusView() {
                     noPreview && "opacity-70 grayscale",
                   )}
                 >
-                  <Vinyl cover={cover} spinning={playing} />
+                  <Vinyl cover={cover} spinning={playing}>
+                    <InTargetsBadge trackId={track.id} />
+                  </Vinyl>
                 </button>
               ) : (
                 <TiltCover
@@ -176,6 +178,7 @@ export function FocusView() {
                     </div>
                   )}
                   </button>
+                  <InTargetsBadge trackId={track.id} />
                 </TiltCover>
               )}
               {/* album name set like a book spine, reading top to bottom */}
@@ -223,6 +226,25 @@ export function FocusView() {
 
       </div>
     </div>
+  );
+}
+
+/** Mobile only: how many of the target playlists already hold this track,
+ *  as a quiet "2 ✓" on the cover (desktop has the target rail's ticks). */
+function InTargetsBadge({ trackId }: { trackId: string }) {
+  const targets = useLibraryStore((s) => s.targets);
+  const count = useSessionStore((s) =>
+    targets.reduce((n, tg) => n + (s.membership[tg.id]?.has(trackId) ? 1 : 0), 0),
+  );
+  if (count === 0) return null;
+  return (
+    <span
+      title={`In ${count} of your target playlist${count === 1 ? "" : "s"}`}
+      className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-0.5 text-sm font-semibold tabnum text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] md:hidden"
+    >
+      {count}
+      <Check className="h-5 w-5" strokeWidth={2.5} />
+    </span>
   );
 }
 
