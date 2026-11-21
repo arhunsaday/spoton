@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeft,
@@ -45,6 +45,83 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { getDevices, type SpotifyDevice } from "@/api/spotify";
 import type { SpotifyTrack } from "@/types";
 import type { SdkStatus } from "@/lib/spotify-sdk";
+
+/** The phone player's progress hairline, made draggable: a tall invisible
+ *  touch strip straddles the bar's top edge. Dragging only moves the line
+ *  (thicker, with a thumb and a time readout); the seek happens on release,
+ *  so full-track mode doesn't send a Spotify API call per finger move. */
+function MobileScrubber({
+  pct,
+  duration,
+  disabled,
+  onSeek,
+}: {
+  pct: number;
+  duration: number;
+  disabled: boolean;
+  onSeek: (f: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<number | null>(null);
+  const frac = (clientX: number) => {
+    const r = ref.current!.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  };
+  const shown = drag ?? pct / 100;
+
+  return (
+    <div
+      ref={ref}
+      role="slider"
+      aria-label="Seek"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(shown * 100)}
+      aria-disabled={disabled}
+      onPointerDown={(e) => {
+        if (disabled) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setDrag(frac(e.clientX));
+      }}
+      onPointerMove={(e) => {
+        if (drag !== null) setDrag(frac(e.clientX));
+      }}
+      onPointerUp={(e) => {
+        if (drag === null) return;
+        onSeek(frac(e.clientX));
+        setDrag(null);
+      }}
+      onPointerCancel={() => setDrag(null)}
+      className="absolute inset-x-0 -top-3 z-20 h-6 touch-none select-none sm:hidden"
+    >
+      <div
+        className={cn(
+          "absolute inset-x-0 top-3 -translate-y-1/2 bg-white/10 transition-[height] duration-150",
+          drag !== null ? "h-1.5" : "h-0.5",
+        )}
+      >
+        <div
+          className="h-full origin-left bg-primary/80"
+          style={{ transform: `scaleX(${shown})` }}
+        />
+      </div>
+      {drag !== null && (
+        <>
+          <span
+            className="absolute top-3 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-md"
+            style={{ left: `${shown * 100}%` }}
+          />
+          <span
+            className="absolute bottom-full mb-1 -translate-x-1/2 rounded bg-card/90 px-1.5 py-0.5 text-xs tabnum text-foreground shadow"
+            style={{ left: `clamp(1.5rem, ${shown * 100}%, calc(100% - 1.5rem))` }}
+          >
+            {formatTime(shown * duration)}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function PlayerBar() {
   const track = useSessionStore((s) => s.tracks[s.index] ?? null);
@@ -142,11 +219,12 @@ export function PlayerBar() {
 
   return (
     <div className="relative box-content flex h-20 shrink-0 items-center pb-[env(safe-area-inset-bottom)] gap-3 border-t border-border bg-card/80 px-3 backdrop-blur sm:gap-4 sm:px-4">
-      {/* phones: no room for a scrubber — a hairline shows progress instead */}
-      <div
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-0.5 origin-left bg-primary/80 sm:hidden"
-        style={{ transform: `scaleX(${pct / 100})` }}
+      {/* phones: no room for the full slider — the top hairline is a scrubber */}
+      <MobileScrubber
+        pct={pct}
+        duration={duration}
+        disabled={!track || noPreview}
+        onSeek={seekFraction}
       />
       {/* now playing */}
       <div className="flex w-0 flex-1 items-center gap-3 sm:w-56 sm:flex-none">
