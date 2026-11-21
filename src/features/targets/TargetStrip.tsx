@@ -164,24 +164,32 @@ function TargetChip({ tg }: { tg: Target }) {
           isIn && "border-success/40 bg-success/15",
         )}
       >
-        {tg.imageUrl ? (
-          <img
-            src={tg.imageUrl}
-            alt=""
-            className="h-8 w-8 shrink-0 rounded-full object-cover drag-none"
-            draggable={false}
-          />
-        ) : (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background/60">
-            {tg.id === LIKED_SOURCE_ID ? (
-              <Heart className="h-4 w-4 text-primary" />
-            ) : (
-              <ListMusic className="h-4 w-4 text-muted-foreground" />
-            )}
-          </span>
-        )}
+        {/* the tick sits over the artwork, so selecting never changes the
+            chip's width and shoves its neighbours along */}
+        <span className="relative h-8 w-8 shrink-0">
+          {tg.imageUrl ? (
+            <img
+              src={tg.imageUrl}
+              alt=""
+              className="h-8 w-8 shrink-0 rounded-full object-cover drag-none"
+              draggable={false}
+            />
+          ) : (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background/60">
+              {tg.id === LIKED_SOURCE_ID ? (
+                <Heart className="h-4 w-4 text-primary" />
+              ) : (
+                <ListMusic className="h-4 w-4 text-muted-foreground" />
+              )}
+            </span>
+          )}
+          {isIn && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-success/80">
+              <Check className="h-4 w-4 text-white" strokeWidth={3} />
+            </span>
+          )}
+        </span>
         <span className="truncate">{tg.name}</span>
-        {isIn && <Check className="h-4 w-4 shrink-0 text-success" />}
       </button>
     </Reorder.Item>
   );
